@@ -1,0 +1,6 @@
+build/
+out/
+.vs/
+data/
+qa_test_*.txt
+*.exe
