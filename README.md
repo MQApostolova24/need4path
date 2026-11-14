@@ -1,103 +1,105 @@
-# Lost Pyramids
+<p align="center">
+<img src="lost-pyramids/docs/logo/logo.png" alt="Lost Pyramids logo" width="640">
+</p>
+ 
+ 
+---
+ 
+## 📜 Table of Contents
+ 
+- [About the Project](#about)
+- [Screenshots](#screenshots)
+- [Used Technologies](#technologies)
+- [Documentation](#documentation)
+- [Contributors](#contributors)
+ 
+---
+ 
+<a name="about"></a>
 
-A maze game in C++ with **raylib 6.0** (project "Labyrinth").
-You are an explorer sent to three pyramids, in **Egypt**, **Mexico** and **Cambodia**. Every expedition builds a new labyrinth. You start in the **top-left corner** and must reach the **exit gate in the bottom-right corner** before the location's timer runs out.
+## 🏺 About the Project
+ 
+**Lost Pyramids** is a maze game. You are an explorer sent to three ancient pyramids - in **Egypt**, **Mexico** and **Cambodia**. Every expedition builds a brand-new labyrinth. You start in the **top-left corner** and must reach the **exit gate in the bottom-right corner** before the location's timer runs out.
+ 
+We did not want a plain grey labyrinth, so we picked one theme and kept it everywhere. Each location has its own story, colours, font, timer, guardian, keys, traps and treasure - but all three share the same rules and the same code.
+ 
+**Features**
+ 
+- 🧭 **A new pyramid every time** - randomly generated, with rooms, loops and dead ends. The exit can always be reached.
+- 🔦 **Three difficulties** - Easy is fully lit, Medium gives you a torch, Hard only a flashlight and a guardian that hunts you.
+- 🗝️ **Secret doors** - walls with a carving that open with a key. Every door is a real shortcut.
+- 💰 **Rewards** - score, up to 3 stars, coins and rare relics.
+- 🛒 **Trading Post** - sell relics and buy six explorer skins.
+- 🔤 **Text view** - press **T** to see the classic text version of the maze.
+- 👤 **Accounts** - sign up and log in; passwords are saved only as a salted hash.
+- 🏆 **Hall of Fame** - the best scores, with filters by location and difficulty.
+ 
+---
+ 
+<a name="screenshots"></a>
 
-Full description, rules and the technical details per team role: **[docs/TECHNICAL_DOCUMENTATION.md](docs/TECHNICAL_DOCUMENTATION.md)**
-QA test cases: **docs/QA_Test_Cases.xlsx**. Screenshots: **docs/screenshots/**
+## 📸 Screenshots
+ 
+<p align="center">
+<img src="lost-pyramids/docs/screenshots/03_locations.png" alt="Choosing a location" width="800">
+<br>
+<i>Choose your destination: Egypt, Mexico or Cambodia</i>
+</p>
+ 
+<p align="center">
+<img src="lost-pyramids/docs/screenshots/05_game_egypt_easy.png" alt="Egypt on Easy" width="800">
+<br>
+<i>Egypt - Easy: the whole pyramid is lit</i>
+</p>
+ 
+<p align="center">
+<img src="lost-pyramids/docs/screenshots/07_game_cambodia_hard.png" alt="Cambodia on Hard" width="800">
+<br>
+<i>Cambodia - Hard: only the flashlight lights the way</i>
+</p>
+ 
+---
+ 
+<a name="technologies"></a>
 
-## Features
+## 🛠 Used Technologies
+ 
+| Logo | Tool | Purpose |
+|:---:|---|---|
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg" width="28" height="28"> | [C++17](https://isocpp.org/) | Programming language |
+| <img src="https://raw.githubusercontent.com/raysan5/raylib/master/logo/raylib_256x256.png" width="28" height="28"> | [raylib 6.0](https://www.raylib.com/) | Window, graphics and input |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cmake/cmake-original.svg" width="28" height="28"> | [CMake](https://cmake.org/) | Building the game and the tests |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/visualstudio/visualstudio-original.svg" width="28" height="28"> | [Visual Studio 2022](https://visualstudio.microsoft.com/) | Primary IDE |
+| <img src="https://cdn.simpleicons.org/github/8B949E" width="28" height="28"> | [GitHub](https://github.com/) | Version control and project board |
+| <img src="https://img.icons8.com/color/48/microsoft-word-2019--v2.png" width="28" height="28"> | [Microsoft Word](https://www.microsoft.com/microsoft-365/word) | Documentation |
+| <img src="https://img.icons8.com/color/48/microsoft-powerpoint-2019--v1.png" width="28" height="28"> | [Microsoft PowerPoint](https://www.microsoft.com/microsoft-365/powerpoint) | Presentation |
+| <img src="https://img.icons8.com/color/48/microsoft-excel-2019--v1.png" width="28" height="28"> | [Microsoft Excel](https://www.microsoft.com/microsoft-365/excel) | QA test cases |
+| <img src="https://img.icons8.com/color/48/microsoft-teams.png" width="28" height="28"> | [Microsoft Teams](https://www.microsoft.com/microsoft-teams) | Communication |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/canva/canva-original.svg" width="28" height="28"> | [Canva](https://www.canva.com/) | Logo design |
+ 
+---
+ 
+<a name="documentation"></a>
 
-- **3 locations**, each with its own story, colours, font, timer, guardian, trap, key, door, rewards and relics.
-  - Egypt: Sands of the Curse, the Mummy.
-  - Mexico: Solar Eclipse, the Jaguar spirit.
-  - Cambodia: Monsoon Flood, the Naga serpent.
-- **3 difficulties:**
-  - Easy: fully lit.
-  - Medium: torch light and traps.
-  - Hard: flashlight only, more traps, a guardian and 2 lives.
-- **Better generation:**
-  - A growing-tree maze that mixes long corridors with branches.
-  - Burial chambers, and loops so there is more than one route.
-  - Secret doors that are always real shortcuts.
-  - Traps never on a shortest route.
-- **Rewards:**
-  - Treasure and gems turn into **coins** when you escape.
-  - Rare **relics** (about one every 3 expeditions).
-  - Up to 3 stars per run.
-- **Trading Post:** sell relics for coins and buy **explorer skins** (6 skins).
-- **Text view (T):** the classic text maze (`#`, `.`, `P`, `E` ...) next to the picture view.
-- Log In / Sign Up, Hall of Fame with filters, How to Play, pause menu.
-
-## Controls
-
-| Key | Action |
+## 📚 Documentation
+ 
+| Documentation | File |
 |---|---|
-| Arrow keys (or W A S D) | Move (hold to keep walking); in menus - choose |
-| Enter / mouse | Confirm |
-| P or Esc | Pause / back (the game also pauses when its window loses focus) |
-| T | Text view on/off |
-| Tab | Next field, switch Trading Post tab |
+| Documentation (Word) | [`Lost_Pyramids_Documentation.docx`](lost-pyramids/docs/Lost_Pyramids_Documentation.docx) |
+| Presentation | [`Lost_Pyramids_Presentation.pptx`](lost-pyramids/docs/Lost_Pyramids_Presentation.pptx) |
+| QA test cases | [`QA_Test_Cases.xlsx`](lost-pyramids/docs/QA_Test_Cases.xlsx) |
+ 
+---
+ 
+<a name="contributors"></a>
 
-## Building
-
-**Visual Studio 2022 / 2026:**
-1. *File -> Open -> Folder*, choose this folder. CMake downloads raylib 6.0 the first time, so it needs internet.
-2. Run **lost_pyramids.exe** to play and **lost_pyramids_tests.exe** to run the tests.
-
-**Command line:**
-
-```
-cmake -S . -B build
-cmake --build build --config Release
-```
-
-The fonts are copied next to the program automatically. Player data is saved in `data/`, in the folder the game runs from.
-On Linux, install first: `sudo apt install libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev`.
-
-## Project structure
-
-Headers (`.h`) are in `include/`, source files (`.cpp`) in `src/`, in the same sub-folders.
-They are connected with `#include "core/maze.h"` and the include path set in `CMakeLists.txt`.
-
-```
-include/core/    src/core/      game logic: maze, generator, rules, locations, profile, skins,
-                                accounts, Hall of Fame, validation - no graphics, no files, no cin/cout
-include/storage/ src/storage/   saving and loading the data files (accounts, scores, profiles)
-include/ui/      src/ui/        screens, drawing, fonts, input (raylib)
-                 src/main.cpp   window + main loop
-tests/           33 QA test functions (T_001 - T_033)
-assets/fonts/    6 fonts + licences (SIL Open Font License)
-docs/            technical documentation, QA workbook, screenshots
-```
-
-## Assignment requirements
-
-| # | Requirement | How it is met |
-|---|---|---|
-| 1 | Maze the player must get through to win | Reach the exit gate (`movePlayer`, `GameEvent::ReachedExit`) |
-| 2 | Dynamic arrays, size 10x10 - 50x50 chosen by the player | `Maze` uses `Cell**` with `new[]`/`delete[]`; size chosen on the Prepare Expedition screen |
-| 3 | Start at (0,0), exit in the bottom-right corner | Always: start (0,0), exit (size-1, size-1) |
-| 4 | Maze shown with the player's position after every move | Redrawn every frame; side panel shows "Row r, Column c" |
-| 5 | Text maze, top-down view | Top-down picture view + **text view (T)** with characters |
-| 6 | Player sees walls, openings and exit | Easy: all lit. Medium/Hard: the layout stays visible in the dark and the exit always shines |
-| 7 | New maze every run | Random seed from `std::random_device` + clock |
-| 8 | Arrow keys; no walking through walls except special shortcut doors | Arrow keys; secret doors open with a key and are always shortcuts |
-| 9 | Functions for keeping and drawing the maze | `maze.cpp`, `maze_generator.cpp`, `maze_renderer.cpp` |
-| 10 | Logic functions without cin/cout | Everything in `src/core` - no console and no files (files are in `src/storage`) |
-| 11 | Menu | Main Menu, Pause menu |
-| 12 | Validation of user input | Username, password, pyramid size (`validation.cpp`) |
-
-**Documentation (section 3):** presentation (to do), technical documentation per role with the game rules (`docs/TECHNICAL_DOCUMENTATION.md`), QA test functions and their description (`tests/`, `docs/QA_Test_Cases.xlsx`), and publishing on GitHub (to do). Working language: English.
-
-## Fonts
-
-From Google Fonts, SIL Open Font License 1.1 (licences in `assets/fonts`):
-
-| Font | Used for |
-|---|---|
-| Cinzel Decorative | Title |
-| Alegreya Sans | Normal text |
-| Rakkas | Egypt |
-| Macondo | Mexico |
-| Koulen | Cambodia |
+## 👥 Contributors
+ 
+| Name | Role | GitHub | Responsibilities |
+|---|---|---|---|
+| *Mariela Apostolova* | SCRUM Trainer | *MQApostolova24@codingburgas.bg* | Planning, GitHub board, presentation |
+| *Nikoleta Georgieva* | Backend Developer | *NGGeorgieva24@codingburgas.bg* | Game logic and data files |
+| *Bozhidar Stanev* | Frontend Developer | *BIStanev24@codingburgas.bg* | Screens, graphics, input |
+| *Yanislav Todorov* | Backend Developer | *YNTodorov24@codingburgas.bg* | Test functions, QA workbook |
+ 
+---
