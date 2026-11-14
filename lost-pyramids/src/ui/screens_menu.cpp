@@ -13,7 +13,6 @@
 
 namespace
 {
-const float CENTER_X = static_cast<float>(SCREEN_WIDTH) / 2.0f;
 
 // ---------------------------------------------------------------- How to Play helpers
 
@@ -111,14 +110,14 @@ void runMainMenuScreen(App& app)
 
     for (int i = 0; i < count; ++i)
     {
-        const Rectangle button = {CENTER_X - 180.0f, 212.0f + 76.0f * static_cast<float>(i), 360.0f, 58.0f};
+        const Rectangle button = {SCREEN_CENTER_X - 180.0f, 212.0f + 76.0f * static_cast<float>(i), 360.0f, 58.0f};
         if (drawButton(button, labels[i], i == app.menuSelection))
         {
             activated = i;
         }
     }
 
-    drawStringCentered("Arrow keys + Enter, or use the mouse.   Esc - quit", CENTER_X,
+    drawStringCentered("Arrow keys + Enter, or use the mouse.   Esc - quit", SCREEN_CENTER_X,
                        static_cast<float>(SCREEN_HEIGHT) - 40.0f, 20.0f, theme::PARCHMENT, FontStyle::Body);
 
     if (IsKeyPressed(KEY_ESCAPE))
@@ -164,7 +163,7 @@ void runRulesScreen(App& app)
     const Location location = static_cast<Location>(app.rulesLocation);
     const LocationPalette& p = getPalette(location);
 
-    drawLocationScene(location, {0.0f, 0.0f, static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT)}, time);
+    drawLocationScene(location, SCREEN_AREA, time);
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(BLACK, 0.55f));
     drawHeading("HOW TO PLAY", 14.0f, 44.0f, theme::GOLD_BRIGHT, FontStyle::Title);
 
@@ -214,7 +213,7 @@ void runRulesScreen(App& app)
     for (int i = 0; i < LOCATION_COUNT; ++i)
     {
         const Location tabLocation = static_cast<Location>(i);
-        if (drawTab({rightX + 186.0f * static_cast<float>(i), 116.0f, 172.0f, 42.0f}, getLocationInfo(tabLocation).country,
+        if (drawTab({rightX + 186.0f * static_cast<float>(i), 116.0f, 172.0f, 42.0f}, getLocationInfo(tabLocation).name,
                     i == app.rulesLocation, getPalette(tabLocation).accent))
         {
             app.rulesLocation = i;
@@ -233,7 +232,7 @@ void runRulesScreen(App& app)
     drawStringCentered("Left / Right - switch location", rightX + 280.0f, 588.0f + 92.0f, 18.0f, theme::TEXT_MUTED,
                        FontStyle::Body);
 
-    if (drawButton({CENTER_X - 150.0f, 728.0f, 300.0f, 52.0f}, "Back", true) || IsKeyPressed(KEY_ESCAPE) ||
+    if (drawButton({SCREEN_CENTER_X - 150.0f, 728.0f, 300.0f, 52.0f}, "Back", true) || IsKeyPressed(KEY_ESCAPE) ||
         IsKeyPressed(KEY_ENTER))
     {
         changeScreen(app, Screen::MainMenu);
@@ -244,7 +243,7 @@ void runLeaderboardScreen(App& app)
 {
     drawMenuBackdrop(static_cast<float>(GetTime()));
     drawHeading("HALL OF FAME", 14.0f, 44.0f, theme::GOLD_BRIGHT, FontStyle::Title);
-    drawStringShadowCentered("The greatest explorers who escaped alive", CENTER_X, 82.0f, 22.0f, theme::PARCHMENT,
+    drawStringShadowCentered("The greatest explorers who escaped alive", SCREEN_CENTER_X, 82.0f, 22.0f, theme::PARCHMENT,
                              FontStyle::Body);
 
     // --- Filters: location (Left / Right) and difficulty (Up / Down) ---
@@ -270,12 +269,12 @@ void runLeaderboardScreen(App& app)
     for (int i = 0; i < 4; ++i)
     {
         const Color accent = i == 0 ? theme::GOLD_BRIGHT : getPalette(static_cast<Location>(i - 1)).accent;
-        if (drawTab({CENTER_X - 400.0f + 200.0f * static_cast<float>(i), 120.0f, 190.0f, 40.0f}, locationTabs[i],
+        if (drawTab({SCREEN_CENTER_X - 400.0f + 200.0f * static_cast<float>(i), 120.0f, 190.0f, 40.0f}, locationTabs[i],
                     app.leaderboardLocation == i - 1, accent))
         {
             app.leaderboardLocation = i - 1;
         }
-        if (drawTab({CENTER_X - 400.0f + 200.0f * static_cast<float>(i), 168.0f, 190.0f, 40.0f}, difficultyTabs[i],
+        if (drawTab({SCREEN_CENTER_X - 400.0f + 200.0f * static_cast<float>(i), 168.0f, 190.0f, 40.0f}, difficultyTabs[i],
                     app.leaderboardDifficulty == i - 1, theme::GOLD_BRIGHT))
         {
             app.leaderboardDifficulty = i - 1;
@@ -300,7 +299,7 @@ void runLeaderboardScreen(App& app)
 
     if (top.empty())
     {
-        drawStringCentered("No expeditions recorded here yet. Be the first to escape!", CENTER_X, 440.0f, 24.0f,
+        drawStringCentered("No expeditions recorded here yet. Be the first to escape!", SCREEN_CENTER_X, 440.0f, 24.0f,
                            theme::PARCHMENT, FontStyle::Body);
     }
 
@@ -320,7 +319,7 @@ void runLeaderboardScreen(App& app)
         drawString(TextFormat("%d", static_cast<int>(i) + 1), columns[0], y, 22.0f, color, FontStyle::Bold);
         drawString(entry.username.c_str(), columns[1], y, 22.0f, color, FontStyle::Bold);
         drawLocationEmblem(entry.location, {columns[2] + 12.0f, y + 12.0f}, 22.0f, p.accent);
-        drawString(getLocationInfo(entry.location).country, columns[2] + 32.0f, y, 22.0f, color, FontStyle::Body);
+        drawString(getLocationInfo(entry.location).name, columns[2] + 32.0f, y, 22.0f, color, FontStyle::Body);
         drawString(difficultyName(entry.difficulty), columns[3], y, 22.0f, color, FontStyle::Body);
         drawString(TextFormat("%dx%d", entry.mazeSize, entry.mazeSize), columns[4], y, 22.0f, color, FontStyle::Body);
         drawString(formatTime(entry.timeSeconds).c_str(), columns[5], y, 22.0f, color, FontStyle::Body);
@@ -328,9 +327,9 @@ void runLeaderboardScreen(App& app)
         drawStringRight(TextFormat("%d", entry.score), columns[7], y, 22.0f, color, FontStyle::Bold);
     }
 
-    drawStringCentered("Left / Right - location      Up / Down - difficulty", CENTER_X, 702.0f, 19.0f, theme::PARCHMENT,
+    drawStringCentered("Left / Right - location      Up / Down - difficulty", SCREEN_CENTER_X, 702.0f, 19.0f, theme::PARCHMENT,
                        FontStyle::Body);
-    if (drawButton({CENTER_X - 150.0f, 732.0f, 300.0f, 52.0f}, "Back", false) || IsKeyPressed(KEY_ESCAPE) ||
+    if (drawButton({SCREEN_CENTER_X - 150.0f, 732.0f, 300.0f, 52.0f}, "Back", false) || IsKeyPressed(KEY_ESCAPE) ||
         IsKeyPressed(KEY_ENTER))
     {
         changeScreen(app, Screen::MainMenu);

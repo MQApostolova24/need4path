@@ -488,7 +488,7 @@ void drawWallTile(Location location, Rectangle rect, int row, int col, bool show
     if (showFront)
     {
         DrawRectangleGradientV(static_cast<int>(rect.x), static_cast<int>(top.y + top.height), static_cast<int>(rect.width),
-                               static_cast<int>(frontHeight) + 1, p.wallDark, mixColor(p.wallDark, BLACK, 0.35f));
+                               static_cast<int>(frontHeight) + 1, p.wallDark, ColorLerp(p.wallDark, BLACK, 0.35f));
     }
 }
 

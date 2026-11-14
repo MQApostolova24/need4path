@@ -15,11 +15,8 @@ enum class Location
 
 struct LocationInfo
 {
-    const char* id;              // saved in the data files, e.g. "Egypt"
-    const char* country;         // shown to the player
-    const char* site;            // where the pyramid stands
+    const char* name;            // shown to the player and saved in the data files, e.g. "Egypt"
     const char* temple;          // the name of the pyramid
-    const char* legend[3];       // short story, three lines
 
     const char* timerName;       // what the countdown means here
     const char* timeUpMessage;   // shown when the timer reaches zero
@@ -41,5 +38,5 @@ struct LocationInfo
 };
 
 const LocationInfo& getLocationInfo(Location location);
-const char* locationId(Location location);
-bool locationFromId(const std::string& id, Location& location);
+const char* locationName(Location location);
+bool locationFromName(const std::string& name, Location& location);

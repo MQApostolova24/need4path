@@ -132,10 +132,6 @@ struct GameState
     int totalGems = 0;
     bool relicPlaced = false;
     bool relicFound = false;
-    int timePickupsCollected = 0;
-    int totalTimePickups = 0;
-    int secretDoors = 0;
-    int doorsOpened = 0;
     int moves = 0;
     int optimalPathLength = 0;
 
@@ -164,6 +160,7 @@ bool startNewGame(GameState& state, int size, Location location, Difficulty diff
 GameEvent movePlayer(GameState& state, Direction direction);
 
 // Advances time: the location timer, the guardian and the short invulnerability.
+// One call never advances more than 0.1 s, so a frozen window cannot make the guardian sprint.
 GameEvent updateGame(GameState& state, float deltaSeconds);
 
 // How much light reaches a tile, from 0 (dark) to 1 (fully lit).

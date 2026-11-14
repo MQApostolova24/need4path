@@ -9,5 +9,5 @@
 std::string validateUsername(const std::string& username);
 std::string validatePassword(const std::string& password);
 
-// Parses the tomb size typed by the player. On success stores it in "size".
+// Parses the pyramid size typed by the player. On success stores it in "size".
 bool parseMazeSize(const std::string& text, int& size, std::string& error);

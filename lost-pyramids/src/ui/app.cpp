@@ -1,5 +1,7 @@
 #include "ui/app.h"
 
+#include "storage/profile_storage.h"
+#include "storage/score_storage.h"
 #include "ui/screens.h"
 #include "ui/theme.h"
 
@@ -66,11 +68,11 @@ void changeScreen(App& app, Screen next)
         app.signUpUsername.active = true;
         break;
     case Screen::MainMenu:
-        loadProfile(PROFILES_FILE_PATH, app.currentUser, app.profile);
+        app.profile = loadProfile(PROFILES_FILE_PATH, app.currentUser);
         break;
     case Screen::ChooseLocation:
         app.menuSelection = static_cast<int>(app.selectedLocation);
-        loadLeaderboard(LEADERBOARD_FILE_PATH, app.leaderboard);
+        app.leaderboard = loadLeaderboard(LEADERBOARD_FILE_PATH);
         break;
     case Screen::Setup:
         app.sizeField.active = true;
@@ -81,7 +83,7 @@ void changeScreen(App& app, Screen next)
         app.tradingMessage.clear();
         break;
     case Screen::Leaderboard:
-        loadLeaderboard(LEADERBOARD_FILE_PATH, app.leaderboard);
+        app.leaderboard = loadLeaderboard(LEADERBOARD_FILE_PATH);
         break;
     default:
         break;
@@ -99,24 +101,29 @@ void saveCurrentProfile(App& app)
 
 bool beginExpedition(App& app, int size)
 {
-    // The relic roll is saved right away, so restarting cannot be used to re-roll it.
+    const int expeditionsBefore = app.profile.expeditionsWithoutRelic;
     const bool withRelic = rollRelicSpawn(app.profile, app.rng);
-    saveCurrentProfile(app);
-
     if (!startNewGame(app.game, size, app.selectedLocation, app.selectedDifficulty, withRelic,
                       static_cast<unsigned int>(app.rng())))
     {
+        app.profile.expeditionsWithoutRelic = expeditionsBefore;
         return false;
     }
+    if (withRelic && !app.game.relicPlaced)
+    {
+        app.profile.expeditionsWithoutRelic = expeditionsBefore + 1;  // no room for the relic: it still counts
+    }
+    // Saved right away, so restarting cannot be used to re-roll the relic.
+    saveCurrentProfile(app);
 
     const LocationInfo& info = getLocationInfo(app.selectedLocation);
     app.lastMazeSize = size;
     app.paused = false;
     app.heldDirection = Direction::None;
     app.moveCooldown = 0.0f;
-    app.eventMessage = withRelic ? std::string("A relic is hidden in this pyramid!")
+    app.eventMessage = app.game.relicPlaced ? std::string("A relic is hidden in this pyramid!")
                                  : std::string("Reach the ") + info.exitName + " in the bottom-right corner!";
-    app.eventColor = withRelic ? theme::GOLD_BRIGHT : theme::PARCHMENT;
+    app.eventColor = app.game.relicPlaced ? theme::GOLD_BRIGHT : theme::PARCHMENT;
     app.eventTimer = 5.0f;
     app.result = ExpeditionResult{};
     changeScreen(app, Screen::Playing);

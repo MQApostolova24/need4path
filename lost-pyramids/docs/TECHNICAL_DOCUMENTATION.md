@@ -6,7 +6,7 @@ Team: _fill in the four names and classes_
 | Role | Name | Parts of the project |
 |---|---|---|
 | SCRUM Trainer | _name_ | planning, GitHub board, presentation |
-| Backend Developer | _name_ | `src/core` - game logic |
+| Backend Developer | _name_ | `core` and `storage` - game logic and data files |
 | Frontend Developer | _name_ | `src/ui` - screens and graphics |
 | QA | _name_ | `tests/`, `docs/QA_Test_Cases.xlsx` |
 
@@ -20,7 +20,7 @@ Team: _fill in the four names and classes_
 
 1. Move with the **arrow keys** (W A S D also work). Walls cannot be crossed.
 2. **Secret doors** are walls with a carving. A **key** (Ankh / Jade glyph / Lotus key) opens one door, and every door is a shortcut to the exit.
-3. Every location has a **timer**: Sands of the Curse (Egypt), Solar Eclipse (Mexico, less time), Monsoon Flood (Cambodia, more time). Time pickups add 15 seconds. **P** pauses the game and the timer.
+3. Every location has a **timer**: Sands of the Curse (Egypt), Solar Eclipse (Mexico, less time), Monsoon Flood (Cambodia, more time). Time pickups add 15 seconds. **P** pauses the game and the timer. The game also pauses when its window loses focus or is minimized.
 4. **Traps** cost a life. They are only placed off the shortest route, so every pyramid can be won.
 5. On **Hard** a **guardian** (mummy, jaguar spirit or naga) hunts the explorer. Touching it costs a life.
 6. **Win:** reach the exit gate. **Lose:** no lives left, or the timer reaches 0.
@@ -60,23 +60,26 @@ Screenshots of every screen are in `docs/screenshots`.
 
 ## 2. Architecture
 
+Headers (`.h`) are in `include/`, source files (`.cpp`) in `src/`, in matching sub-folders. A file includes a header by its path inside `include/`, e.g. `#include "core/maze.h"`. `CMakeLists.txt` adds `include/` to the include path.
+
 ```
-src/main.cpp      window and main loop (60 frames per second)
-src/core/         GAME LOGIC     - no graphics, no cin/cout (requirement 10)
-src/ui/           USER INTERFACE - raylib drawing and keyboard/mouse input
-tests/            QA test functions
-assets/fonts/     themed fonts (SIL Open Font License)
-docs/             this document, the QA workbook, screenshots
-data/             created at runtime: users.txt, leaderboard.txt, profiles.txt
+include/core/    + src/core/      GAME LOGIC - no graphics, no files, no cin/cout (requirement 10)
+include/storage/ + src/storage/   SAVING / LOADING the text files in data/
+include/ui/      + src/ui/        USER INTERFACE - raylib drawing and keyboard/mouse input
+src/main.cpp                      window and main loop (60 frames per second)
+tests/                            QA test functions
+assets/fonts/                     themed fonts (SIL Open Font License)
+docs/                             this document, the QA workbook, screenshots
+data/                             created at runtime: users.txt, leaderboard.txt, profiles.txt
 ```
 
-The UI calls the logic, and the logic never calls the UI. For example, the game screen reads a key, calls `movePlayer(state, Direction::Up)` and gets back a `GameEvent` (`BlockedByWall`, `KeyCollected`, `ReachedExit` ...), which it turns into a message. Because of this split, the QA tests can check the logic without opening a window.
+The code is built as three layers: `core` (logic), then `storage` (uses core), then the game itself (uses both, plus raylib). Each layer only calls the layers below it, so the UI calls the logic and the logic never calls the UI. For example, the game screen reads a key, calls `movePlayer(state, Direction::Up)` and gets back a `GameEvent` (`BlockedByWall`, `KeyCollected`, `ReachedExit` ...), which it turns into a message. Because of this split, the QA tests can check the logic without opening a window.
 
 **Main loop:** every frame `runCurrentScreen(app)` calls the function of the open screen (`runLoginScreen`, `runPlayingScreen` ...). The `App` structure keeps everything between frames. `changeScreen` switches screens and loads the data each screen needs.
 
 ---
 
-## 3. Backend Developer - game logic (`src/core`)
+## 3. Backend Developer - game logic (`core`) and data files (`storage`)
 
 | File | What it does |
 |---|---|
@@ -86,10 +89,19 @@ The UI calls the logic, and the logic never calls the UI. For example, the game 
 | `location.h/.cpp` | data of the three locations (names, timers, guardians, relics) |
 | `profile.h/.cpp` | coins, relics, skins, relic chance, Trading Post rules |
 | `skins.h/.cpp` | names and prices of the six skins |
-| `auth.h/.cpp` | sign up / log in with salted password hashes |
-| `leaderboard.h/.cpp` | Hall of Fame: save, load, sort, filter, personal bests |
+| `auth.h/.cpp` | salted password hashes, finding a user |
+| `leaderboard.h/.cpp` | Hall of Fame: sort, filter, personal bests |
 | `validation.h/.cpp` | checks for username, password and pyramid size |
 | `config.h`, `utils.h/.cpp` | constants and small helpers |
+
+The files in `data/` are read and written only by the **storage** layer:
+
+| File | What it does |
+|---|---|
+| `storage/account_storage.h/.cpp` | `users.txt`: load accounts, sign up, log in |
+| `storage/score_storage.h/.cpp` | `leaderboard.txt`: load and save Hall of Fame entries |
+| `storage/profile_storage.h/.cpp` | `profiles.txt`: load and save coins, skins and relics |
+| `storage/file_utils.h/.cpp` | read all lines of a file, create the `data/` folder |
 
 ### Dynamic memory (requirement 2)
 
@@ -141,7 +153,7 @@ Copying a `Maze` is disabled, so two objects can never free the same memory. Tes
 4. Picks up the item on the new tile.
 5. Checks the exit and the guardian.
 
-`updateGame(deltaSeconds)` advances the timer and moves the guardian. The guardian uses a BFS from the player: within its chase range it steps closer, otherwise it wanders.
+`updateGame(deltaSeconds)` advances the timer and moves the guardian. One call never advances more than 0.1 s, so a frozen window (for example while it is dragged) cannot make the timer jump or the guardian sprint. The guardian uses a BFS from the player: within its chase range it steps closer, otherwise it wanders.
 
 ### Light (`getLightLevel`, `isCellLit`)
 
@@ -171,7 +183,7 @@ Copying a `Maze` is disabled, so two objects can never free the same memory. Tes
 
 | File | What it does |
 |---|---|
-| `app.h/.cpp` | `App` state, `changeScreen`, `beginExpedition` |
+| `app.h/.cpp` | `App` state, `changeScreen`, `beginExpedition` (rolls the relic chance and saves the profile) |
 | `screens_auth.cpp` | Log In, Sign Up |
 | `screens_menu.cpp` | Main Menu (requirement 11), How to Play, Hall of Fame |
 | `screens_expedition.cpp` | Choose Location, Prepare Expedition (size + difficulty) |
@@ -222,7 +234,7 @@ There are two kinds of testing.
 
 **1. Automated test functions** (`tests/test_main.cpp`, program `lost_pyramids_tests`)
 
-- 33 test functions (T_001 - T_033) with 240 checks. They call the logic directly.
+- 33 test functions (T_001 - T_033) with 238 checks. They call the logic directly.
 - Each prints PASSED or FAILED, and the program ends with a summary (`Tests: 33 / 33 passed`).
 - They cover:
   - pyramid sizes, the corner exit, generation quality (connected, loops, chambers);
@@ -234,7 +246,7 @@ There are two kinds of testing.
 **2. Manual test cases** (`docs/QA_Test_Cases.xlsx`)
 
 - One tab per screen, in the team's test-case format: Test Details, steps, test data, expectations, actual result, status.
-- 20 test cases with 68 steps.
+- 20 test cases with 69 steps.
 - The Summary tab counts PASSED / FAILED / NOT RUN automatically.
 - Fill in "Created by", "Actual Result" and "Status" while testing the game.
 

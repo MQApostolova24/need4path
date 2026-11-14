@@ -22,7 +22,8 @@ void drawMazeScene(const GameState& state, const MazeView& view, float time, int
 // The classic TEXT view of the maze (assignment requirement 5), seen from above:
 //   #  wall          .  corridor        P  player        E  exit
 //   D  secret door   /  opened door     k  key           $  treasure
-//   *  gem           R  relic           +  time pickup   x  trap   G  guardian
+//   *  gem           R  relic           +  time pickup   x  trap
+//   o  sprung trap   G  guardian
 // Rewards, traps and the guardian follow the same visibility rules as the picture view.
 void drawTextMaze(const GameState& state, const MazeView& view);
 

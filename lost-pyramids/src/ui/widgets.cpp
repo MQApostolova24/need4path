@@ -38,7 +38,7 @@ void drawOrnamentLine(float centerX, float y, float halfWidth, Color color)
 
 void drawGameTitle(float y, const char* subtitle)
 {
-    const float centerX = static_cast<float>(SCREEN_WIDTH) / 2.0f;
+    const float centerX = SCREEN_CENTER_X;
     drawStringShadowCentered("LOST PYRAMIDS", centerX, y, 72.0f, theme::GOLD_BRIGHT, FontStyle::Title);
     drawOrnamentLine(centerX, y + 86.0f, 260.0f, theme::GOLD_BRIGHT);
     if (subtitle != nullptr)
@@ -49,7 +49,7 @@ void drawGameTitle(float y, const char* subtitle)
 
 void drawHeading(const char* text, float y, float size, Color color, FontStyle style)
 {
-    const float centerX = static_cast<float>(SCREEN_WIDTH) / 2.0f;
+    const float centerX = SCREEN_CENTER_X;
     drawStringShadowCentered(text, centerX, y, size, color, style);
     const float halfWidth = std::fmax(140.0f, measureString(text, size, style) / 2.0f + 30.0f);
     drawOrnamentLine(centerX, y + size * 1.12f, halfWidth, color);

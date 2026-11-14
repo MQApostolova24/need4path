@@ -16,6 +16,7 @@ const DifficultySettings DIFFICULTIES[3] = {
 };
 
 const float INVULNERABILITY_SECONDS = 1.5f;
+const float MAX_STEP_SECONDS = 0.1f;  // longer pauses (e.g. dragging the window) count as 0.1 s
 const int GUARDIAN_SPAWN_DISTANCE_FROM_EXIT = 6;
 const int GUARDIAN_MIN_DISTANCE_FROM_START = 8;
 
@@ -204,7 +205,6 @@ GameEvent collectItem(GameState& state, Cell& cell)
         cell.item = ItemType::None;
         return GameEvent::RelicCollected;
     case ItemType::TimePickup:
-        state.timePickupsCollected++;
         state.timeLimitSeconds += TIME_PICKUP_SECONDS;
         cell.item = ItemType::None;
         return GameEvent::TimeCollected;
@@ -369,10 +369,6 @@ bool startNewGame(GameState& state, int size, Location location, Difficulty diff
     state.totalGems = result.gemsPlaced;
     state.relicPlaced = result.relicPlaced;
     state.relicFound = false;
-    state.timePickupsCollected = 0;
-    state.totalTimePickups = result.timePickupsPlaced;
-    state.secretDoors = result.secretDoorsPlaced;
-    state.doorsOpened = 0;
     state.moves = 0;
     state.elapsedSeconds = 0.0f;
     state.invulnerableSeconds = 0.0f;
@@ -416,7 +412,6 @@ GameEvent movePlayer(GameState& state, Direction direction)
             return GameEvent::DoorLocked;
         }
         state.keys--;
-        state.doorsOpened++;
         cell.tile = TileType::OpenedDoor;
         openedDoor = true;
     }
@@ -456,6 +451,7 @@ GameEvent updateGame(GameState& state, float deltaSeconds)
         return GameEvent::None;
     }
 
+    deltaSeconds = std::min(deltaSeconds, MAX_STEP_SECONDS);
     state.elapsedSeconds += deltaSeconds;
     state.invulnerableSeconds = std::max(0.0f, state.invulnerableSeconds - deltaSeconds);
 

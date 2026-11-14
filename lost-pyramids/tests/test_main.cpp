@@ -2,7 +2,6 @@
 // They test the "core" folder directly, so no window or graphics are needed.
 // Run the "lost_pyramids_tests" program - every test prints PASSED or FAILED.
 
-#include "core/auth.h"
 #include "core/config.h"
 #include "core/game.h"
 #include "core/leaderboard.h"
@@ -11,6 +10,9 @@
 #include "core/profile.h"
 #include "core/skins.h"
 #include "core/validation.h"
+#include "storage/account_storage.h"
+#include "storage/profile_storage.h"
+#include "storage/score_storage.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -264,7 +266,6 @@ void testSecretDoorsAreShortcuts()
 
     const int doors = countTiles(maze, TileType::SecretDoor);
     check(doors > 0, "a 41x41 pyramid has secret doors");
-    check(doors == state.secretDoors, "the game knows how many doors exist");
     check(countItems(maze, ItemType::Key) == doors, "there is one key per secret door");
 
     const int withoutDoors = shortestPathLength(maze, maze.getStart(), maze.getExit(), PathMode::WalkableOnly);
@@ -307,7 +308,7 @@ void testRelicPlacement()
         GameState state;
         startNewGame(state, 25, static_cast<Location>(location), Difficulty::Medium, true, 2024u);
         const Maze& maze = state.maze;
-        const std::string tag = std::string(" (") + locationId(static_cast<Location>(location)) + ")";
+        const std::string tag = std::string(" (") + locationName(static_cast<Location>(location)) + ")";
 
         GridPos relic;
         check(state.relicPlaced, "a relic is placed when the roll says so" + tag);
@@ -361,7 +362,6 @@ void testSecretDoorNeedsKey()
     state.keys = 1;
     check(movePlayer(state, Direction::Right) == GameEvent::DoorOpened, "the key opens the door");
     check(state.keys == 0, "the key is used up");
-    check(state.doorsOpened == 1, "the opened door is counted");
     check(state.maze.at(0, 1).tile == TileType::OpenedDoor, "the door stays open");
 }
 
@@ -402,7 +402,7 @@ void testTimePickup()
 
     check(movePlayer(state, Direction::Right) == GameEvent::TimeCollected, "the time pickup is collected");
     check(state.timeLimitSeconds == before + TIME_PICKUP_SECONDS, "the timer gets extra seconds");
-    check(state.timePickupsCollected == 1, "the pickup is counted");
+    check(state.maze.at(0, 1).item == ItemType::None, "the pickup disappears");
 }
 
 void testTrapCostsLife()
@@ -439,7 +439,6 @@ void testReachingExitWins()
     GameState state;
     buildCorridorGame(state, Difficulty::Easy);
     state.maze.at(0, 3).tile = TileType::Exit;
-    state.maze.setExit(GridPos{0, 3});
 
     movePlayer(state, Direction::Right);
     movePlayer(state, Direction::Right);
@@ -456,7 +455,7 @@ void testLocationTimers()
         GameState state;
         startNewGame(state, 15, static_cast<Location>(location), Difficulty::Easy, true, 5u);
         limits[location] = state.timeLimitSeconds;
-        check(state.timeLimitSeconds > 0.0f, std::string("every location has a timer: ") + locationId(static_cast<Location>(location)));
+        check(state.timeLimitSeconds > 0.0f, std::string("every location has a timer: ") + locationName(static_cast<Location>(location)));
     }
     check(limits[1] < limits[0], "the eclipse in Mexico gives less time than Egypt");
     check(limits[2] > limits[0], "the monsoon in Cambodia gives more time than Egypt");
@@ -466,7 +465,12 @@ void testLocationTimers()
     updateGame(state, 1.0f);
     check(state.status == GameStatus::Playing, "the game continues before the time is up");
     check(getTimeFraction(state) < 1.0f && getTimeFraction(state) > 0.0f, "the time fraction goes down");
-    check(updateGame(state, state.timeLimitSeconds) == GameEvent::TimeUp, "the timer runs out");
+    const float before = state.elapsedSeconds;
+    updateGame(state, 3.0f);  // a 3 second freeze (e.g. dragging the window)
+    check(state.elapsedSeconds - before < 0.11f, "a long freeze counts as at most 0.1 seconds");
+
+    state.elapsedSeconds = state.timeLimitSeconds - 0.05f;
+    check(updateGame(state, 0.1f) == GameEvent::TimeUp, "the timer runs out");
     check(state.lossReason == LossReason::OutOfTime, "the reason is: out of time");
 }
 
@@ -657,21 +661,20 @@ void testLeaderboard()
     {
         std::ofstream extra(TEST_SCORES_FILE, std::ios::app);
         extra << "this;line;is;broken\n";
-        extra << "Oldie;Medium;12;300;100.00;50\n";  // a line saved by an older version of the game
+        extra << "Ghost;Egypt;Hard;12;abc;100.00;50;1\n";  // a damaged number
     }
 
-    std::vector<ScoreEntry> entries;
-    check(loadLeaderboard(TEST_SCORES_FILE, entries), "the Hall of Fame loads");
-    check(entries.size() == 4, "broken lines are skipped, old lines are kept");
+    const std::vector<ScoreEntry> entries = loadLeaderboard(TEST_SCORES_FILE);
+    check(entries.size() == 3, "the Hall of Fame loads and damaged lines are skipped");
     check(!entries.empty() && entries[0].username == "Cleo", "the highest score is first");
-    check(entries.size() == 4 && entries[1].username == "Tut", "equal scores: the faster time wins");
-    check(entries.size() == 4 && entries[0].location == Location::Cambodia && entries[0].stars == 3,
+    check(entries.size() == 3 && entries[1].username == "Tut", "equal scores: the faster time wins");
+    check(entries.size() == 3 && entries[0].location == Location::Cambodia && entries[0].stars == 3,
           "location and stars are saved and loaded");
 
     check(getTopScores(entries, FILTER_ALL, static_cast<int>(Difficulty::Easy), LEADERBOARD_SIZE).size() == 2,
           "filtering by difficulty works");
-    check(getTopScores(entries, static_cast<int>(Location::Egypt), FILTER_ALL, LEADERBOARD_SIZE).size() == 2,
-          "filtering by location works (old lines count as Egypt)");
+    check(getTopScores(entries, static_cast<int>(Location::Egypt), FILTER_ALL, LEADERBOARD_SIZE).size() == 1,
+          "filtering by location works");
     check(getTopScores(entries, FILTER_ALL, FILTER_ALL, 1).size() == 1, "the list is limited");
 
     float bestTime = 0.0f;
@@ -687,8 +690,7 @@ void testProfileSaveLoad()
 {
     std::remove(TEST_PROFILES_FILE);
 
-    PlayerProfile lara;
-    loadProfile(TEST_PROFILES_FILE, "Lara", lara);
+    PlayerProfile lara = loadProfile(TEST_PROFILES_FILE, "Lara");
     check(lara.coins == 0 && lara.ownsSkin(0) && lara.equippedSkin == 0, "a new player starts with 0 coins and the free skin");
 
     lara.coins = 420;
@@ -699,32 +701,29 @@ void testProfileSaveLoad()
     lara.expeditionsWithoutRelic = 2;
     check(saveProfile(TEST_PROFILES_FILE, lara), "the profile is saved");
 
-    PlayerProfile nate;
-    loadProfile(TEST_PROFILES_FILE, "Nate", nate);
+    PlayerProfile nate = loadProfile(TEST_PROFILES_FILE, "Nate");
     nate.coins = 5;
     saveProfile(TEST_PROFILES_FILE, nate);
 
     lara.coins = 430;  // saving again replaces the old line instead of adding a new one
     saveProfile(TEST_PROFILES_FILE, lara);
 
-    PlayerProfile loaded;
-    loadProfile(TEST_PROFILES_FILE, "LARA", loaded);
+    PlayerProfile loaded = loadProfile(TEST_PROFILES_FILE, "LARA");
     check(loaded.coins == 430, "coins are loaded back (any letter case)");
     check(loaded.relicCount(Location::Mexico, Difficulty::Hard) == 2, "relics are loaded back");
     check(loaded.hasDiscovered(Location::Mexico, Difficulty::Hard), "discovered relics are remembered");
     check(loaded.ownsSkin(3) && loaded.equippedSkin == 3, "skins are loaded back");
     check(loaded.expeditionsWithoutRelic == 2, "the relic counter is loaded back");
 
-    PlayerProfile other;
-    loadProfile(TEST_PROFILES_FILE, "Nate", other);
-    check(other.coins == 5 && other.totalRelics() == 0, "other players keep their own data");
+    PlayerProfile other = loadProfile(TEST_PROFILES_FILE, "Nate");
+    check(other.coins == 5 && other.relicCount(Location::Mexico, Difficulty::Hard) == 0,
+          "other players keep their own data");
 
     {
         std::ofstream broken(TEST_PROFILES_FILE, std::ios::app);
         broken << "Broken;abc;0;1;0;0,0,0;0\n";
     }
-    PlayerProfile damaged;
-    loadProfile(TEST_PROFILES_FILE, "Broken", damaged);
+    PlayerProfile damaged = loadProfile(TEST_PROFILES_FILE, "Broken");
     check(damaged.coins == 0, "a damaged line gives a fresh profile instead of a crash");
 
     std::remove(TEST_PROFILES_FILE);
@@ -812,12 +811,12 @@ void testLocationData()
     {
         const Location location = static_cast<Location>(i);
         Location parsed = Location::Egypt;
-        check(locationFromId(locationId(location), parsed) && parsed == location, "location ids can be read back");
+        check(locationFromName(locationName(location), parsed) && parsed == location, "location names can be read back");
         guardians.insert(getLocationInfo(location).guardianName);
         timers.insert(getLocationInfo(location).timerName);
     }
     Location unused;
-    check(!locationFromId("Atlantis", unused), "unknown locations are rejected");
+    check(!locationFromName("Atlantis", unused), "unknown locations are rejected");
     check(guardians.size() == 3 && timers.size() == 3, "every location has its own guardian and timer");
 }
 

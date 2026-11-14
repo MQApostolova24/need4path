@@ -21,9 +21,6 @@ struct Frame
     Vector2 at(float fx, float fy) const;
 };
 
-// Mixes two colours (amount 0 = first, 1 = second).
-Color mixColor(Color first, Color second, float amount);
-
 // A filled triangle that does not care about the order of its corners.
 void drawTriangleAnyOrder(Vector2 a, Vector2 b, Vector2 c, Color color);
 

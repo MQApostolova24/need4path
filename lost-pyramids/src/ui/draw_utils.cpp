@@ -38,11 +38,6 @@ Vector2 Frame::at(float fx, float fy) const
     return {x(fx), y(fy)};
 }
 
-Color mixColor(Color first, Color second, float amount)
-{
-    return ColorLerp(first, second, amount);
-}
-
 void drawTriangleAnyOrder(Vector2 a, Vector2 b, Vector2 c, Color color)
 {
     // raylib needs counter-clockwise corners (as seen on screen, where y grows downwards).

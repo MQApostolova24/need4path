@@ -7,6 +7,8 @@
 
 const int SCREEN_WIDTH = 1280;
 const int SCREEN_HEIGHT = 800;
+const float SCREEN_CENTER_X = static_cast<float>(SCREEN_WIDTH) / 2.0f;
+const Rectangle SCREEN_AREA = {0.0f, 0.0f, static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT)};
 
 namespace theme
 {

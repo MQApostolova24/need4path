@@ -41,7 +41,6 @@ bool Maze::allocate(int newSize)
     {
         cells[row] = new Cell[size];  // every Cell starts as a wall
     }
-    exitPos = GridPos{size - 1, size - 1};
     return true;
 }
 
@@ -106,17 +105,7 @@ GridPos Maze::getStart() const
 
 GridPos Maze::getExit() const
 {
-    return exitPos;
-}
-
-void Maze::setExit(GridPos pos)
-{
-    exitPos = pos;
-}
-
-bool Maze::isOnBorder(GridPos pos) const
-{
-    return isInside(pos) && (pos.row == 0 || pos.col == 0 || pos.row == size - 1 || pos.col == size - 1);
+    return GridPos{size - 1, size - 1};
 }
 
 std::size_t Maze::toIndex(GridPos pos) const

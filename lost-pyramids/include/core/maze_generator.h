@@ -17,19 +17,13 @@ struct GenerationSettings
     bool relic = false;        // a legendary relic hidden in a far dead end
 };
 
-// What was actually built.
+// What was actually placed (small pyramids may have room for fewer).
 struct GenerationResult
 {
     int secretDoorsPlaced = 0;
-    int keysPlaced = 0;
     int treasuresPlaced = 0;
     int gemsPlaced = 0;
-    int timePickupsPlaced = 0;
-    int trapsPlaced = 0;
-    int chambersPlaced = 0;
-    int loopsAdded = 0;
     bool relicPlaced = false;
-    GridPos exit;
 };
 
 // Builds a brand-new random pyramid:

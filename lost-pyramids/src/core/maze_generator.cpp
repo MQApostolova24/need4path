@@ -124,7 +124,7 @@ bool roomsOverlap(const Room& a, const Room& b)
 
 // Opens a few rectangular burial chambers. Their corners sit on carved cells,
 // so every chamber is already connected to the corridors around it.
-int carveChambers(Maze& maze, int count, std::mt19937& rng)
+void carveChambers(Maze& maze, int count, std::mt19937& rng)
 {
     const int size = maze.getSize();
     const int lastCell = (size % 2 == 0) ? size - 2 : size - 1;
@@ -168,16 +168,15 @@ int carveChambers(Maze& maze, int count, std::mt19937& rng)
         }
         rooms.push_back(room);
     }
-    return static_cast<int>(rooms.size());
 }
 
 // Gives some dead ends a second way out, so the pyramid has loops
 // (more than one route, and space to escape from the guardian).
-int addLoops(Maze& maze, float fraction, std::mt19937& rng)
+void addLoops(Maze& maze, float fraction, std::mt19937& rng)
 {
     if (fraction <= 0.0f)
     {
-        return 0;
+        return;
     }
 
     std::vector<GridPos> deadEnds;
@@ -223,14 +222,13 @@ int addLoops(Maze& maze, float fraction, std::mt19937& rng)
             }
         }
     }
-    return added;
 }
 
 // ---------------------------------------------------------------- the exit
 
 // The exit gate is always in the bottom-right corner (assignment requirement 3).
 // With even sizes the corner is outside the carved grid, so a short passage links it.
-void placeCornerExit(Maze& maze, GenerationResult& result)
+void placeCornerExit(Maze& maze)
 {
     const int last = maze.getSize() - 1;
     if (maze.getSize() % 2 == 0)
@@ -238,8 +236,6 @@ void placeCornerExit(Maze& maze, GenerationResult& result)
         maze.at(last - 1, last).tile = TileType::Floor;
     }
     maze.at(last, last).tile = TileType::Exit;
-    maze.setExit(GridPos{last, last});
-    result.exit = maze.getExit();
 }
 
 // ---------------------------------------------------------------- secret doors
@@ -431,9 +427,9 @@ void placeItems(Maze& maze, const GenerationSettings& settings, int keyCount, st
     std::shuffle(sideTiles.begin(), sideTiles.end(), rng);
     std::shuffle(laterTiles.begin(), laterTiles.end(), rng);
 
-    result.keysPlaced = placeOnFreeTiles(maze, allTiles, keyCount, ItemType::Key);
-    result.timePickupsPlaced = placeOnFreeTiles(maze, laterTiles, settings.timePickups, ItemType::TimePickup);
-    result.trapsPlaced = placeOnFreeTiles(maze, sideTiles, settings.traps, ItemType::Trap);
+    placeOnFreeTiles(maze, allTiles, keyCount, ItemType::Key);
+    placeOnFreeTiles(maze, laterTiles, settings.timePickups, ItemType::TimePickup);
+    placeOnFreeTiles(maze, sideTiles, settings.traps, ItemType::Trap);
     result.gemsPlaced = placeOnFreeTiles(maze, sideTiles, settings.gems, ItemType::Gem);  // rare = off the route
     result.treasuresPlaced = placeOnFreeTiles(maze, allTiles, settings.treasures, ItemType::Treasure);
 }
@@ -450,9 +446,9 @@ bool generateMaze(Maze& maze, int size, const GenerationSettings& settings, std:
 
     carveGrowingTree(maze, rng);
     openEvenEdges(maze, rng);
-    result.chambersPlaced = carveChambers(maze, settings.chambers, rng);
-    result.loopsAdded = addLoops(maze, settings.loopFraction, rng);
-    placeCornerExit(maze, result);
+    carveChambers(maze, settings.chambers, rng);
+    addLoops(maze, settings.loopFraction, rng);
+    placeCornerExit(maze);
     result.secretDoorsPlaced = placeSecretDoors(maze, settings.secretDoors, rng);
     placeItems(maze, settings, result.secretDoorsPlaced, rng, result);
     return true;

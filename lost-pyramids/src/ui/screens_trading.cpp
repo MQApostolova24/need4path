@@ -10,9 +10,7 @@
 
 namespace
 {
-const float CENTER_X = static_cast<float>(SCREEN_WIDTH) / 2.0f;
 const int RELIC_TAB = 0;
-const int SKIN_TAB = 1;
 
 void showTradingMessage(App& app, const std::string& message, bool isError)
 {
@@ -98,7 +96,7 @@ void runRelicTab(App& app, float time)
         const float rowY = 222.0f + 150.0f * static_cast<float>(l);
 
         drawLocationEmblem(location, {100.0f, rowY + 56.0f}, 48.0f, p.accent);
-        drawString(getLocationInfo(location).country, 136.0f, rowY + 34.0f, 34.0f, p.accent, locationFont(location));
+        drawString(getLocationInfo(location).name, 136.0f, rowY + 34.0f, 34.0f, p.accent, locationFont(location));
 
         for (int d = 0; d < DIFFICULTY_COUNT; ++d)
         {
@@ -201,7 +199,7 @@ void runSkinTab(App& app, float time)
 {
     for (int i = 0; i < SKIN_COUNT; ++i)
     {
-        const Rectangle card = {CENTER_X - 490.0f + 335.0f * static_cast<float>(i % 3),
+        const Rectangle card = {SCREEN_CENTER_X - 490.0f + 335.0f * static_cast<float>(i % 3),
                                 182.0f + 258.0f * static_cast<float>(i / 3), 310.0f, 242.0f};
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), card))
         {
@@ -240,7 +238,7 @@ void runTradingPostScreen(App& app)
     const char* tabs[] = {"Sell Relics", "Explorer Skins"};
     for (int i = 0; i < 2; ++i)
     {
-        if (drawTab({CENTER_X - 250.0f + 260.0f * static_cast<float>(i), 92.0f, 240.0f, 44.0f}, tabs[i],
+        if (drawTab({SCREEN_CENTER_X - 250.0f + 260.0f * static_cast<float>(i), 92.0f, 240.0f, 44.0f}, tabs[i],
                     app.tradingTab == i, theme::GOLD_BRIGHT) &&
             app.tradingTab != i)
         {
@@ -267,16 +265,16 @@ void runTradingPostScreen(App& app)
 
     if (!app.tradingMessage.empty())
     {
-        drawStringCentered(app.tradingMessage.c_str(), CENTER_X, 704.0f, 22.0f,
+        drawStringCentered(app.tradingMessage.c_str(), SCREEN_CENTER_X, 704.0f, 22.0f,
                            app.tradingMessageIsError ? theme::DANGER : theme::SUCCESS, FontStyle::Bold);
     }
     else
     {
-        drawStringCentered("Tab - switch      Arrows - choose      Enter - sell / buy", CENTER_X, 704.0f, 20.0f,
+        drawStringCentered("Tab - switch      Arrows - choose      Enter - sell / buy", SCREEN_CENTER_X, 704.0f, 20.0f,
                            theme::PARCHMENT, FontStyle::Body);
     }
 
-    if (drawButton({CENTER_X - 150.0f, 736.0f, 300.0f, 50.0f}, "Back", false) || IsKeyPressed(KEY_ESCAPE))
+    if (drawButton({SCREEN_CENTER_X - 150.0f, 736.0f, 300.0f, 50.0f}, "Back", false) || IsKeyPressed(KEY_ESCAPE))
     {
         changeScreen(app, Screen::MainMenu);
     }

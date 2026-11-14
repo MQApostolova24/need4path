@@ -2,7 +2,6 @@
 
 #include <cctype>
 #include <cstdio>
-#include <filesystem>
 
 std::vector<std::string> splitString(const std::string& text, char separator)
 {
@@ -34,19 +33,6 @@ std::string toLowerCopy(const std::string& text)
         symbol = static_cast<char>(std::tolower(static_cast<unsigned char>(symbol)));
     }
     return result;
-}
-
-bool ensureParentDirectory(const std::string& filePath)
-{
-    const std::filesystem::path parent = std::filesystem::path(filePath).parent_path();
-    if (parent.empty())
-    {
-        return true;
-    }
-
-    std::error_code error;
-    std::filesystem::create_directories(parent, error);
-    return !error;
 }
 
 std::string formatTime(float seconds)

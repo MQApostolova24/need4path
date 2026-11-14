@@ -78,12 +78,8 @@ public:
     Cell& at(GridPos pos);
     const Cell& at(GridPos pos) const;
 
-    GridPos getStart() const;  // always (0, 0)
-    GridPos getExit() const;   // chosen by the generator (random or bottom-right)
-    void setExit(GridPos pos);
-
-    // True for tiles on the outer edge of the grid.
-    bool isOnBorder(GridPos pos) const;
+    GridPos getStart() const;  // always (0, 0) - the top-left corner
+    GridPos getExit() const;   // always (size - 1, size - 1) - the bottom-right corner
 
     // Converts a position to an index in a flat size * size array.
     std::size_t toIndex(GridPos pos) const;
@@ -91,7 +87,6 @@ public:
 private:
     Cell** cells = nullptr;
     int size = 0;
-    GridPos exitPos;
 };
 
 // True if a tile can be stepped on in the given path mode.

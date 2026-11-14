@@ -7,12 +7,7 @@ namespace
 const LocationInfo LOCATIONS[3] = {
     {
         "Egypt",
-        "Egypt",
-        "Giza Plateau",
         "Pyramid of Akhen-Ra",
-        {"Pharaoh Akhen-Ra sealed his pyramid with a curse.",
-         "Its corridors shift for every explorer who enters,",
-         "and the desert sands pour in when time runs out."},
         "Sands of the Curse",
         "The cursed sands buried the corridors.",
         1.0f,
@@ -31,12 +26,7 @@ const LocationInfo LOCATIONS[3] = {
     },
     {
         "Mexico",
-        "Mexico",
-        "Yucatan Jungle",
         "Temple of the Feathered Serpent",
-        {"Deep in the jungle rises a great step pyramid",
-         "built to honour the Feathered Serpent.",
-         "Escape before the eclipse swallows the sun."},
         "Solar Eclipse",
         "The eclipse swallowed the sun - darkness fell.",
         0.9f,
@@ -55,12 +45,7 @@ const LocationInfo LOCATIONS[3] = {
     },
     {
         "Cambodia",
-        "Cambodia",
-        "Koh Ker Forest",
         "Temple of the Naga King",
-        {"A seven-tiered pyramid hidden in the forest",
-         "guards the treasure of the Naga King.",
-         "The monsoon is coming - the halls will flood."},
         "Monsoon Flood",
         "The monsoon flooded the temple halls.",
         1.1f,
@@ -86,16 +71,16 @@ const LocationInfo& getLocationInfo(Location location)
     return LOCATIONS[index];
 }
 
-const char* locationId(Location location)
+const char* locationName(Location location)
 {
-    return getLocationInfo(location).id;
+    return getLocationInfo(location).name;
 }
 
-bool locationFromId(const std::string& id, Location& location)
+bool locationFromName(const std::string& name, Location& location)
 {
     for (int i = 0; i < 3; ++i)
     {
-        if (id == LOCATIONS[i].id)
+        if (name == LOCATIONS[i].name)
         {
             location = static_cast<Location>(i);
             return true;

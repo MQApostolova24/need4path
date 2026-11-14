@@ -8,7 +8,6 @@
 
 namespace
 {
-const Color KHAKI = {200, 172, 120, 255};
 const Color HAT_BROWN = {112, 74, 42, 255};
 const Color BANDAGE = {228, 220, 198, 255};
 const Color BANDAGE_DARK = {150, 140, 118, 255};
@@ -273,9 +272,9 @@ void drawGemSprite(Location location, Vector2 center, float size, float time)
         const Vector2 bottom = {center.x, center.y + size * 0.32f};
         const Vector2 left = {center.x - size * 0.26f, center.y - size * 0.05f};
         const Vector2 right = {center.x + size * 0.26f, center.y - size * 0.05f};
-        drawTriangleAnyOrder(top, left, right, mixColor(p.gem, WHITE, 0.3f));
+        drawTriangleAnyOrder(top, left, right, ColorLerp(p.gem, WHITE, 0.3f));
         drawTriangleAnyOrder(left, bottom, right, p.gem);
-        drawTriangleAnyOrder(center, bottom, right, mixColor(p.gem, BLACK, 0.25f));
+        drawTriangleAnyOrder(center, bottom, right, ColorLerp(p.gem, BLACK, 0.25f));
         DrawLineEx(left, right, thick(size, 0.03f), Fade(WHITE, 0.5f));
         break;
     }
@@ -305,7 +304,7 @@ void drawRelicSprite(Location location, Vector2 center, float size, float time)
             DrawLineEx({c.x + half - size * 0.02f, y}, {c.x + half + size * 0.08f, y}, thick(size, 0.04f), p.gem);
         }
         DrawEllipse(static_cast<int>(c.x), static_cast<int>(c.y + size * 0.06f), size * 0.17f, size * 0.24f,
-                    mixColor(theme::GOLD_BRIGHT, WHITE, 0.25f));
+                    ColorLerp(theme::GOLD_BRIGHT, WHITE, 0.25f));
         DrawLineEx({c.x - size * 0.12f, c.y}, {c.x - size * 0.03f, c.y}, thick(size, 0.04f), theme::INK);
         DrawLineEx({c.x + size * 0.03f, c.y}, {c.x + size * 0.12f, c.y}, thick(size, 0.04f), theme::INK);
         DrawRectangleRec({c.x - size * 0.03f, c.y + size * 0.28f, size * 0.06f, size * 0.12f}, p.gem);
@@ -470,7 +469,7 @@ void drawExitSprite(Location location, Rectangle tile, float time)
     }
 
     DrawRectangleGradientV(static_cast<int>(tile.x), static_cast<int>(tile.y), static_cast<int>(tile.width),
-                           static_cast<int>(tile.height), mixColor(p.accent, WHITE, 0.55f), p.accent);
+                           static_cast<int>(tile.height), ColorLerp(p.accent, WHITE, 0.55f), p.accent);
     DrawRectangleLinesEx(tile, thick(tile.width, 0.12f), p.accentDark);
     drawLocationEmblem(location, center, tile.height * 0.6f, Fade(theme::INK, 0.85f));
 }

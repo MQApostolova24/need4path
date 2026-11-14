@@ -71,7 +71,7 @@ bool parseMazeSize(const std::string& text, int& size, std::string& error)
 
     if (text.empty())
     {
-        error = "Please enter a tomb size.";
+        error = "Please enter a pyramid size.";
         return false;
     }
     for (char symbol : text)

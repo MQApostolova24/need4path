@@ -35,7 +35,7 @@ QA test cases: **docs/QA_Test_Cases.xlsx**. Screenshots: **docs/screenshots/**
 |---|---|
 | Arrow keys (or W A S D) | Move (hold to keep walking); in menus - choose |
 | Enter / mouse | Confirm |
-| P or Esc | Pause / back |
+| P or Esc | Pause / back (the game also pauses when its window loses focus) |
 | T | Text view on/off |
 | Tab | Next field, switch Trading Post tab |
 
@@ -57,11 +57,15 @@ On Linux, install first: `sudo apt install libx11-dev libxrandr-dev libxinerama-
 
 ## Project structure
 
+Headers (`.h`) are in `include/`, source files (`.cpp`) in `src/`, in the same sub-folders.
+They are connected with `#include "core/maze.h"` and the include path set in `CMakeLists.txt`.
+
 ```
-src/main.cpp     window + main loop
-src/core/        game logic (maze, generator, rules, locations, profile, skins, accounts,
-                 Hall of Fame, validation) - no graphics, no cin/cout
-src/ui/          screens, drawing, fonts, input (raylib)
+include/core/    src/core/      game logic: maze, generator, rules, locations, profile, skins,
+                                accounts, Hall of Fame, validation - no graphics, no files, no cin/cout
+include/storage/ src/storage/   saving and loading the data files (accounts, scores, profiles)
+include/ui/      src/ui/        screens, drawing, fonts, input (raylib)
+                 src/main.cpp   window + main loop
 tests/           33 QA test functions (T_001 - T_033)
 assets/fonts/    6 fonts + licences (SIL Open Font License)
 docs/            technical documentation, QA workbook, screenshots
@@ -80,7 +84,7 @@ docs/            technical documentation, QA workbook, screenshots
 | 7 | New maze every run | Random seed from `std::random_device` + clock |
 | 8 | Arrow keys; no walking through walls except special shortcut doors | Arrow keys; secret doors open with a key and are always shortcuts |
 | 9 | Functions for keeping and drawing the maze | `maze.cpp`, `maze_generator.cpp`, `maze_renderer.cpp` |
-| 10 | Logic functions without cin/cout | Everything in `src/core` |
+| 10 | Logic functions without cin/cout | Everything in `src/core` - no console and no files (files are in `src/storage`) |
 | 11 | Menu | Main Menu, Pause menu |
 | 12 | Validation of user input | Username, password, pyramid size (`validation.cpp`) |
 

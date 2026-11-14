@@ -13,8 +13,6 @@
 
 namespace
 {
-const float CENTER_X = static_cast<float>(SCREEN_WIDTH) / 2.0f;
-const Rectangle FULL_SCREEN = {0.0f, 0.0f, static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT)};
 
 const int SIZE_PRESETS[3] = {15, 25, 40};
 const char* const SIZE_PRESET_NAMES[3] = {"Small 15", "Medium 25", "Large 40"};
@@ -40,7 +38,7 @@ void drawLocationCard(const App& app, Rectangle card, Location location, bool se
     DrawRectangleRoundedLinesEx(card, 0.05f, 8, selected ? 4.0f : 2.0f, selected ? p.accent : theme::BRONZE);
 
     const float centerX = card.x + card.width / 2.0f;
-    drawStringShadowCentered(info.country, centerX, card.y + 272.0f, 50.0f, p.accent, locationFont(location));
+    drawStringShadowCentered(info.name, centerX, card.y + 272.0f, 50.0f, p.accent, locationFont(location));
     drawStringCentered(info.temple, centerX, card.y + 332.0f, 22.0f, theme::PARCHMENT, FontStyle::Bold);
 
     // The location's timer
@@ -146,7 +144,7 @@ void tryBeginExpedition(App& app)
 void runChooseLocationScreen(App& app)
 {
     const float time = static_cast<float>(GetTime());
-    drawLocationScene(static_cast<Location>(app.menuSelection), FULL_SCREEN, time);
+    drawLocationScene(static_cast<Location>(app.menuSelection), SCREEN_AREA, time);
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(BLACK, 0.55f));
     drawHeading("CHOOSE YOUR DESTINATION", 22.0f, 44.0f, theme::GOLD_BRIGHT, FontStyle::Title);
     drawCoinBadge(app.profile.coins, static_cast<float>(SCREEN_WIDTH) - 24.0f, 22.0f);
@@ -172,16 +170,16 @@ void runChooseLocationScreen(App& app)
         drawLocationCard(app, card, static_cast<Location>(i), app.menuSelection == i, time);
     }
 
-    if (drawButton({CENTER_X - 330.0f, 690.0f, 300.0f, 56.0f}, "Back", false) || IsKeyPressed(KEY_ESCAPE))
+    if (drawButton({SCREEN_CENTER_X - 330.0f, 690.0f, 300.0f, 56.0f}, "Back", false) || IsKeyPressed(KEY_ESCAPE))
     {
         changeScreen(app, Screen::MainMenu);
         return;
     }
-    if (drawButton({CENTER_X + 30.0f, 690.0f, 300.0f, 56.0f}, "Continue", true))
+    if (drawButton({SCREEN_CENTER_X + 30.0f, 690.0f, 300.0f, 56.0f}, "Continue", true))
     {
         proceed = true;
     }
-    drawStringCentered("Left / Right - choose      Enter - continue", CENTER_X, 762.0f, 20.0f, theme::PARCHMENT,
+    drawStringCentered("Left / Right - choose      Enter - continue", SCREEN_CENTER_X, 762.0f, 20.0f, theme::PARCHMENT,
                        FontStyle::Body);
 
     if (proceed)
@@ -198,10 +196,10 @@ void runSetupScreen(App& app)
     const LocationInfo& info = getLocationInfo(location);
     const LocationPalette& p = getPalette(location);
 
-    drawLocationScene(location, FULL_SCREEN, time);
+    drawLocationScene(location, SCREEN_AREA, time);
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(BLACK, 0.5f));
-    drawStringShadowCentered(info.temple, CENTER_X, 22.0f, 50.0f, p.accent, locationFont(location));
-    drawStringShadowCentered("Prepare your expedition", CENTER_X, 82.0f, 24.0f, theme::PARCHMENT, FontStyle::Body);
+    drawStringShadowCentered(info.temple, SCREEN_CENTER_X, 22.0f, 50.0f, p.accent, locationFont(location));
+    drawStringShadowCentered("Prepare your expedition", SCREEN_CENTER_X, 82.0f, 24.0f, theme::PARCHMENT, FontStyle::Body);
 
     const Rectangle panel = {110.0f, 130.0f, 1060.0f, 520.0f};
     drawPanel(panel, p.accent);
@@ -265,21 +263,21 @@ void runSetupScreen(App& app)
     const char* note = app.setupError.empty()
                            ? "Relics are rare: about one every 3 expeditions. Escape with one to sell it for coins."
                            : app.setupError.c_str();
-    drawStringCentered(note, CENTER_X, 574.0f, 21.0f, app.setupError.empty() ? theme::TEXT_MUTED : theme::DANGER,
+    drawStringCentered(note, SCREEN_CENTER_X, 574.0f, 21.0f, app.setupError.empty() ? theme::TEXT_MUTED : theme::DANGER,
                        FontStyle::Body);
 
     // --- Buttons ---
     bool begin = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER);
-    if (drawButton({CENTER_X - 330.0f, 676.0f, 300.0f, 56.0f}, "Back", false) || IsKeyPressed(KEY_ESCAPE))
+    if (drawButton({SCREEN_CENTER_X - 330.0f, 676.0f, 300.0f, 56.0f}, "Back", false) || IsKeyPressed(KEY_ESCAPE))
     {
         changeScreen(app, Screen::ChooseLocation);
         return;
     }
-    if (drawButton({CENTER_X + 30.0f, 676.0f, 300.0f, 56.0f}, "Begin Expedition", true))
+    if (drawButton({SCREEN_CENTER_X + 30.0f, 676.0f, 300.0f, 56.0f}, "Begin Expedition", true))
     {
         begin = true;
     }
-    drawStringCentered("Up / Down - size      Left / Right - difficulty      Enter - begin", CENTER_X, 754.0f, 20.0f,
+    drawStringCentered("Up / Down - size      Left / Right - difficulty      Enter - begin", SCREEN_CENTER_X, 754.0f, 20.0f,
                        theme::PARCHMENT, FontStyle::Body);
 
     if (begin)

@@ -176,7 +176,7 @@ void drawEgyptScene(const Frame& f, const LocationPalette& p, float time)
                            static_cast<int>(f.area.y + f.area.height - horizon) + 1, p.ground, p.hillNear);
     DrawEllipse(static_cast<int>(f.x(0.2f)), static_cast<int>(f.y(0.86f)), f.w(0.55f), f.h(0.1f), p.groundLight);
     DrawEllipse(static_cast<int>(f.x(0.85f)), static_cast<int>(f.y(0.95f)), f.w(0.6f), f.h(0.12f),
-                mixColor(p.groundLight, p.ground, 0.4f));
+                ColorLerp(p.groundLight, p.ground, 0.4f));
 
     drawPalm(f.at(0.06f, 0.92f), f.h(0.3f), Fade(p.skyTop, 0.9f), 0.6f);
     drawPalm(f.at(0.95f, 0.98f), f.h(0.24f), Fade(p.skyTop, 0.9f), -0.5f);
@@ -201,7 +201,7 @@ void drawMexicoScene(const Frame& f, const LocationPalette& p, float time)
     const float scale = std::fmin(f.area.width, f.area.height);
     const Vector2 sun = f.at(0.76f, 0.3f);
     drawGlowDisc(sun, scale * 0.09f, p.sun, p.sun);
-    DrawCircleV({sun.x + scale * 0.045f, sun.y - scale * 0.01f}, scale * 0.088f, mixColor(p.skyTop, p.skyBottom, 0.45f));
+    DrawCircleV({sun.x + scale * 0.045f, sun.y - scale * 0.01f}, scale * 0.088f, ColorLerp(p.skyTop, p.skyBottom, 0.45f));
 
     // Distant mountains
     for (int i = 0; i < 5; ++i)
@@ -219,7 +219,7 @@ void drawMexicoScene(const Frame& f, const LocationPalette& p, float time)
     const int tiers = 9;
     drawTieredPyramid(centerX, baseY, baseWidth, tierHeight, tiers, 0.075f, p.monumentLit, p.monumentShade, false, 1.0f);
     drawStairs(centerX, baseY, baseWidth * 0.12f, tierHeight * static_cast<float>(tiers), 18,
-               mixColor(p.monumentLit, WHITE, 0.15f), p.monumentShade, false, 1.0f);
+               ColorLerp(p.monumentLit, WHITE, 0.15f), p.monumentShade, false, 1.0f);
 
     // Temple on top with three dark doorways
     const float templeWidth = baseWidth * 0.22f;
@@ -329,7 +329,7 @@ void drawCambodiaScene(const Frame& f, const LocationPalette& p, float time)
     drawTieredPyramid(pyramidX, waterLine, pyramidWidth, tierHeight, 7, 0.1f, p.monumentLit, p.monumentShade, false,
                       1.0f);
     drawStairs(pyramidX, waterLine, pyramidWidth * 0.09f, tierHeight * 7.0f, 21,
-               mixColor(p.monumentLit, WHITE, 0.12f), p.monumentShade, false, 1.0f);
+               ColorLerp(p.monumentLit, WHITE, 0.12f), p.monumentShade, false, 1.0f);
     DrawRectangleRec({pyramidX - pyramidWidth * 0.06f, waterLine - tierHeight * 8.2f, pyramidWidth * 0.12f,
                       tierHeight * 1.2f},
                      p.monumentShade);
@@ -342,9 +342,9 @@ void drawCambodiaScene(const Frame& f, const LocationPalette& p, float time)
     }
 
     // The moat with a reflection
-    const Color water = mixColor(p.skyTop, p.hillNear, 0.35f);
+    const Color water = ColorLerp(p.skyTop, p.hillNear, 0.35f);
     DrawRectangleGradientV(static_cast<int>(f.area.x), static_cast<int>(waterLine), static_cast<int>(f.area.width),
-                           static_cast<int>(f.area.y + f.area.height - waterLine) + 1, mixColor(water, p.skyBottom, 0.3f),
+                           static_cast<int>(f.area.y + f.area.height - waterLine) + 1, ColorLerp(water, p.skyBottom, 0.3f),
                            water);
     drawTieredPyramid(pyramidX, waterLine, pyramidWidth, tierHeight * 0.7f, 7, 0.1f, p.monumentLit, p.monumentShade,
                       true, 0.25f);
@@ -413,9 +413,7 @@ void drawMenuBackdrop(float time)
 {
     const int scene = static_cast<int>(time / MENU_SCENE_SECONDS) % 3;
     const float local = std::fmod(time, MENU_SCENE_SECONDS);
-    const Rectangle screen = {0.0f, 0.0f, static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT)};
-
-    drawLocationScene(static_cast<Location>(scene), screen, time);
+    drawLocationScene(static_cast<Location>(scene), SCREEN_AREA, time);
 
     // Fade through black between two locations
     float darkness = 0.0f;

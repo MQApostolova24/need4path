@@ -31,7 +31,6 @@ struct ExpeditionResult
     ScoreBreakdown score;
     int stars = 0;
     int coinsEarned = 0;
-    bool scoreSaved = false;
     bool relicKept = false;  // the relic was added to the player's stash
 };
 

@@ -3,6 +3,7 @@
 #include "ui/screens.h"
 
 #include "core/utils.h"
+#include "storage/score_storage.h"
 #include "ui/draw_utils.h"
 #include "ui/location_theme.h"
 #include "ui/maze_renderer.h"
@@ -13,7 +14,6 @@
 
 namespace
 {
-const float CENTER_X = static_cast<float>(SCREEN_WIDTH) / 2.0f;
 const float FIRST_REPEAT_DELAY = 0.18f;  // hold an arrow key to keep walking
 const float REPEAT_INTERVAL = 0.085f;
 const float EVENT_MESSAGE_SECONDS = 3.0f;
@@ -156,7 +156,7 @@ void finishExpedition(App& app)
 
     if (app.game.status == GameStatus::Won)
     {
-        result.scoreSaved = saveScore(LEADERBOARD_FILE_PATH, createScoreEntry(app.game, app.currentUser));
+        saveScore(LEADERBOARD_FILE_PATH, createScoreEntry(app.game, app.currentUser));
         result.coinsEarned = collectRewards(app.profile, app.game);
         result.relicKept = app.game.relicFound;
         saveCurrentProfile(app);
@@ -238,9 +238,10 @@ void drawTextLegend(float x, float y)
 {
     const char* const entries[] = {"#  wall",     ".  corridor", "P  you",       "E  exit",  "D  secret door",
                                    "/  open door", "k  key",     "$  treasure",  "*  gem",   "R  relic",
-                                   "+  time",      "x  trap",    "G  guardian"};
+                                   "+  time",      "x  trap",    "o  sprung trap",
+                                   "G  guardian"};
     drawString("TEXT VIEW", x, y, 20.0f, theme::GOLD_BRIGHT, FontStyle::Bold);
-    for (int i = 0; i < 13; ++i)
+    for (int i = 0; i < 14; ++i)
     {
         const float column = static_cast<float>(i % 3) * 140.0f;
         const float row = static_cast<float>(i / 3) * 24.0f;
@@ -261,7 +262,7 @@ void drawHud(const App& app, float time)
 
     // Where am I?
     drawLocationEmblem(game.location, {x + 22.0f, 64.0f}, 38.0f, p.accent);
-    drawString(info.country, x + 54.0f, 40.0f, 40.0f, p.accent, locationFont(game.location));
+    drawString(info.name, x + 54.0f, 40.0f, 40.0f, p.accent, locationFont(game.location));
     drawTab({x + width - 112.0f, 46.0f, 112.0f, 36.0f}, settings.name, true, p.accent);
     drawString(info.temple, x + 54.0f, 86.0f, 20.0f, theme::TEXT_MUTED, FontStyle::Body);
     drawOrnamentLine(x + width / 2.0f, 124.0f, width / 2.0f - 6.0f, Fade(p.accent, 0.8f));
@@ -312,10 +313,10 @@ void runPauseMenu(App& app)
     const LocationPalette& p = getPalette(app.game.location);
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(BLACK, 0.75f));
 
-    const Rectangle panel = {CENTER_X - 240.0f, static_cast<float>(SCREEN_HEIGHT) / 2.0f - 190.0f, 480.0f, 380.0f};
+    const Rectangle panel = {SCREEN_CENTER_X - 240.0f, static_cast<float>(SCREEN_HEIGHT) / 2.0f - 190.0f, 480.0f, 380.0f};
     drawPanel(panel, p.accent);
-    drawStringCentered("PAUSED", CENTER_X, panel.y + 26.0f, 46.0f, p.accent, locationFont(app.game.location));
-    drawStringCentered("The timer is stopped.", CENTER_X, panel.y + 86.0f, 21.0f, theme::TEXT_LIGHT, FontStyle::Body);
+    drawStringCentered("PAUSED", SCREEN_CENTER_X, panel.y + 26.0f, 46.0f, p.accent, locationFont(app.game.location));
+    drawStringCentered("The timer is stopped.", SCREEN_CENTER_X, panel.y + 86.0f, 21.0f, theme::TEXT_LIGHT, FontStyle::Body);
 
     const char* labels[] = {"Resume", "New Pyramid", "Abandon Expedition"};
     int activated = handleMenuNavigation(app.menuSelection, 3);
@@ -359,9 +360,9 @@ void drawVictoryDetails(const App& app, float top, float left, float right, floa
     const ScoreBreakdown& score = app.result.score;
     const LocationPalette& p = getPalette(game.location);
 
-    drawStarRow({CENTER_X - 62.0f, top + 142.0f}, 26.0f, app.result.stars, 3, theme::GOLD_BRIGHT);
-    drawStringCentered(TextFormat("%d", score.total), CENTER_X, top + 178.0f, 56.0f, theme::GOLD_BRIGHT, FontStyle::Title);
-    drawStringCentered(TextFormat("points  (x%.1f difficulty bonus)", static_cast<double>(score.multiplier)), CENTER_X,
+    drawStarRow({SCREEN_CENTER_X - 62.0f, top + 142.0f}, 26.0f, app.result.stars, 3, theme::GOLD_BRIGHT);
+    drawStringCentered(TextFormat("%d", score.total), SCREEN_CENTER_X, top + 178.0f, 56.0f, theme::GOLD_BRIGHT, FontStyle::Title);
+    drawStringCentered(TextFormat("points  (x%.1f difficulty bonus)", static_cast<double>(score.multiplier)), SCREEN_CENTER_X,
                        top + 240.0f, 19.0f, theme::TEXT_MUTED, FontStyle::Body);
 
     float y = top + 280.0f;
@@ -402,20 +403,20 @@ void drawDefeatDetails(const App& app, float top, float time)
     const LocationInfo& info = getLocationInfo(game.location);
     const LocationPalette& p = getPalette(game.location);
 
-    drawGuardianSprite(game.location, {CENTER_X, top + 190.0f}, 120.0f, time);
-    drawStringCentered(TextFormat("Time %s      Moves %d", formatTime(game.elapsedSeconds).c_str(), game.moves), CENTER_X,
+    drawGuardianSprite(game.location, {SCREEN_CENTER_X, top + 190.0f}, 120.0f, time);
+    drawStringCentered(TextFormat("Time %s      Moves %d", formatTime(game.elapsedSeconds).c_str(), game.moves), SCREEN_CENTER_X,
                        top + 290.0f, 23.0f, theme::TEXT_LIGHT, FontStyle::Body);
-    drawStringCentered("Rewards, coins and relics only count when you escape.", CENTER_X, top + 332.0f, 21.0f,
+    drawStringCentered("Rewards, coins and relics only count when you escape.", SCREEN_CENTER_X, top + 332.0f, 21.0f,
                        theme::TEXT_MUTED, FontStyle::Body);
 
-    const Rectangle tipBox = {CENTER_X - 280.0f, top + 396.0f, 560.0f, 80.0f};
+    const Rectangle tipBox = {SCREEN_CENTER_X - 280.0f, top + 396.0f, 560.0f, 80.0f};
     DrawRectangleRounded(tipBox, 0.3f, 6, Fade(p.accent, 0.15f));
-    drawStringCentered("EXPLORER'S TIP", CENTER_X, tipBox.y + 12.0f, 19.0f, p.accent, FontStyle::Bold);
+    drawStringCentered("EXPLORER'S TIP", SCREEN_CENTER_X, tipBox.y + 12.0f, 19.0f, p.accent, FontStyle::Bold);
     const char* tip = game.lossReason == LossReason::OutOfTime
                           ? TextFormat("Grab every %s - each one adds %d seconds!", info.timePickupName,
                                        static_cast<int>(TIME_PICKUP_SECONDS))
                           : TextFormat("%ss hide only in side halls - the main route is safe.", info.trapName);
-    drawStringCentered(tip, CENTER_X, tipBox.y + 42.0f, 20.0f, theme::TEXT_LIGHT, FontStyle::Body);
+    drawStringCentered(tip, SCREEN_CENTER_X, tipBox.y + 42.0f, 20.0f, theme::TEXT_LIGHT, FontStyle::Body);
 }
 }  // namespace
 
@@ -424,7 +425,9 @@ void runPlayingScreen(App& app)
     const float deltaSeconds = GetFrameTime();
     const float time = static_cast<float>(GetTime());
 
-    if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_P))
+    // P / Esc pauses. Switching to another window or minimizing pauses too, so the timer stops.
+    const bool lostFocus = !IsWindowFocused() || IsWindowMinimized();
+    if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_P) || (lostFocus && !app.paused))
     {
         app.paused = !app.paused;
         app.menuSelection = 0;
@@ -446,7 +449,7 @@ void runPlayingScreen(App& app)
     }
 
     const LocationPalette& p = getPalette(app.game.location);
-    DrawRectangleGradientV(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, p.skyTop, mixColor(p.skyTop, BLACK, 0.5f));
+    DrawRectangleGradientV(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, p.skyTop, ColorLerp(p.skyTop, BLACK, 0.5f));
     const MazeView view = computeMazeView(app.game.maze.getSize(), MAZE_AREA);
     if (app.textView)
     {
@@ -478,26 +481,26 @@ void runResultsScreen(App& app)
     const LocationPalette& p = getPalette(game.location);
     const bool won = game.status == GameStatus::Won;
 
-    drawLocationScene(game.location, {0.0f, 0.0f, static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT)}, time);
+    drawLocationScene(game.location, SCREEN_AREA, time);
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(BLACK, 0.45f));
 
-    const Rectangle panel = {CENTER_X - 330.0f, 40.0f, 660.0f, 720.0f};
+    const Rectangle panel = {SCREEN_CENTER_X - 330.0f, 40.0f, 660.0f, 720.0f};
     drawPanel(panel, won ? p.accent : theme::DANGER);
     const float top = panel.y;
 
     if (won)
     {
-        drawStringShadowCentered("YOU ESCAPED!", CENTER_X, top + 26.0f, 58.0f, p.accent, locationFont(game.location));
-        drawStringCentered(TextFormat("You walked out through the %s.", info.exitName), CENTER_X, top + 92.0f, 21.0f,
+        drawStringShadowCentered("YOU ESCAPED!", SCREEN_CENTER_X, top + 26.0f, 58.0f, p.accent, locationFont(game.location));
+        drawStringCentered(TextFormat("You walked out through the %s.", info.exitName), SCREEN_CENTER_X, top + 92.0f, 21.0f,
                            theme::TEXT_LIGHT, FontStyle::Body);
         drawVictoryDetails(app, top, panel.x + 80.0f, panel.x + panel.width - 80.0f, time);
     }
     else
     {
-        drawStringShadowCentered("LOST IN THE PYRAMID", CENTER_X, top + 26.0f, 52.0f, theme::DANGER,
+        drawStringShadowCentered("LOST IN THE PYRAMID", SCREEN_CENTER_X, top + 26.0f, 52.0f, theme::DANGER,
                                  locationFont(game.location));
         const char* reason = game.lossReason == LossReason::OutOfTime ? info.timeUpMessage : "You have no lives left.";
-        drawStringCentered(reason, CENTER_X, top + 92.0f, 22.0f, theme::TEXT_LIGHT, FontStyle::Body);
+        drawStringCentered(reason, SCREEN_CENTER_X, top + 92.0f, 22.0f, theme::TEXT_LIGHT, FontStyle::Body);
         drawDefeatDetails(app, top, time);
     }
 

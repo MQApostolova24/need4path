@@ -6,10 +6,9 @@
 #include <random>
 #include <string>
 
-// Everything a player owns, stored in data/profiles.txt, one line per player:
-//   username;coins;equippedSkin;ownedSkins;discoveredRelics;r0,r1,...,r8;expeditionsWithoutRelic
+// Everything a player owns: coins, skins and relics, and the rules of the Trading Post.
 // ownedSkins and discoveredRelics are bit masks (bit i = skin i / relic i).
-// r0..r8 are how many of each relic the player holds (index = location * 3 + difficulty).
+// Reading and writing data/profiles.txt is done in storage/profile_storage.
 
 struct PlayerProfile
 {
@@ -24,17 +23,9 @@ struct PlayerProfile
     bool ownsSkin(int skinId) const;
     bool hasDiscovered(Location location, Difficulty difficulty) const;
     int relicCount(Location location, Difficulty difficulty) const;
-    int totalRelics() const;
-    int discoveredCount() const;
 };
 
 int relicIndex(Location location, Difficulty difficulty);
-
-// Loads a player's profile. A player without a saved line gets a fresh profile.
-bool loadProfile(const std::string& filePath, const std::string& username, PlayerProfile& profile);
-
-// Saves (adds or replaces) the player's line, keeping everyone else's lines.
-bool saveProfile(const std::string& filePath, const PlayerProfile& profile);
 
 // Decides if the next expedition hides a relic: a 1 in RELIC_CHANCE_ONE_IN chance,
 // guaranteed after RELIC_GUARANTEED_AFTER expeditions in a row without one.
