@@ -47,6 +47,21 @@ struct GridPos
     int col = 0;
 };
 
+enum class Direction
+{
+    None,
+    Up,
+    Down,
+    Left,
+    Right
+};
+
+// The four directions, for loops that visit every neighbour of a tile.
+const Direction ALL_DIRECTIONS[4] = {Direction::Up, Direction::Down, Direction::Left, Direction::Right};
+
+// The neighbouring tile in the given direction.
+GridPos stepInDirection(GridPos pos, Direction direction);
+
 bool operator==(const GridPos& left, const GridPos& right);
 bool operator!=(const GridPos& left, const GridPos& right);
 

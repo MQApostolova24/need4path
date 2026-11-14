@@ -5,24 +5,9 @@
 
 namespace
 {
-// Corridors are carved two tiles at a time so walls stay between them.
-const int CARVE_ROW[4] = {-2, 2, 0, 0};
-const int CARVE_COL[4] = {0, 0, -2, 2};
-const int NEIGHBOUR_ROW[4] = {-1, 1, 0, 0};
-const int NEIGHBOUR_COL[4] = {0, 0, -1, 1};
-
-const float NEWEST_CELL_CHANCE = 0.75f; // growing tree: 75% long corridors, 25% branching
-const int MIN_DOOR_SPACING = 5;         // secret doors are not placed next to each other
-const int MIN_TRAP_DISTANCE = 4;        // no traps right at the entrance
-const float RELIC_DETOUR_RATIO = 0.7f;
-
-struct Room
-{
-    int top;
-    int left;
-    int height;
-    int width;
-};
+const int MIN_DOOR_SPACING = 5;   // secret doors are not placed next to each other
+const int MIN_TRAP_DISTANCE = 4;  // no traps right at the entrance
+const int ROOM_SIZE = 3;          // burial chambers are 3x3 tiles
 
 bool chance(std::mt19937& rng, float probability)
 {
@@ -30,56 +15,52 @@ bool chance(std::mt19937& rng, float probability)
     return roll(rng) < probability;
 }
 
-int randomIndex(std::mt19937& rng, std::size_t count)
-{
-    std::uniform_int_distribution<int> pick(0, static_cast<int>(count) - 1);
-    return pick(rng);
-}
-
 // ---------------------------------------------------------------- corridors
 
-// "Growing tree": keep a list of cells that can still grow. Taking the newest cell
-// makes long winding corridors; taking a random one makes many short branches.
-void carveGrowingTree(Maze& maze, std::mt19937& rng)
+// "Recursive backtracker" with a stack: dig to a random unvisited neighbour two tiles
+// away; when there is none, step back. This visits every cell, so every corridor is
+// connected to the entrance.
+void carveCorridors(Maze& maze, std::mt19937& rng)
 {
-    std::vector<GridPos> active;
-    active.push_back(GridPos{0, 0});
+    std::vector<GridPos> stack;
+    stack.push_back(GridPos{0, 0});
     maze.at(0, 0).tile = TileType::Floor;
 
-    int order[4] = {0, 1, 2, 3};
+    Direction order[4] = {Direction::Up, Direction::Down, Direction::Left, Direction::Right};
 
-    while (!active.empty())
+    while (!stack.empty())
     {
-        const int index = chance(rng, NEWEST_CELL_CHANCE) ? static_cast<int>(active.size()) - 1
-                                                           : randomIndex(rng, active.size());
-        const GridPos current = active[static_cast<std::size_t>(index)];
-        std::shuffle(order, order + 4, rng);
+        const GridPos current = stack.back();
+        std::shuffle(order, order + 4, rng);  // try the directions in a random order
 
         bool carved = false;
-        for (int direction : order)
+        for (Direction direction : order)
         {
-            const GridPos next{current.row + CARVE_ROW[direction], current.col + CARVE_COL[direction]};
+            // Cells are two tiles apart, so a wall always stays between corridors.
+            const GridPos wall = stepInDirection(current, direction);
+            const GridPos next = stepInDirection(wall, direction);
             if (!maze.isInside(next) || maze.at(next).tile != TileType::Wall)
             {
                 continue;
             }
 
-            maze.at(current.row + CARVE_ROW[direction] / 2, current.col + CARVE_COL[direction] / 2).tile = TileType::Floor;
+            // Open the wall between the two cells, then the new cell itself.
+            maze.at(wall).tile = TileType::Floor;
             maze.at(next).tile = TileType::Floor;
-            active.push_back(next);
+            stack.push_back(next);
             carved = true;
             break;
         }
 
         if (!carved)
         {
-            active.erase(active.begin() + index);
+            stack.pop_back();  // dead end: go back one cell
         }
     }
 }
 
-// With even sizes the carving never reaches the last row and column.
-// Open nooks and short passages there so that edge is part of the pyramid too.
+// With even sizes the carving (2 tiles at a time) never reaches the last row and column.
+// Open some small nooks there so that edge is part of the pyramid too.
 void openEvenEdges(Maze& maze, std::mt19937& rng)
 {
     if (maze.getSize() % 2 != 0)
@@ -99,74 +80,53 @@ void openEvenEdges(Maze& maze, std::mt19937& rng)
             maze.at(last, i).tile = TileType::Floor;
         }
     }
-    // Join neighbouring nooks into short passages along the edge.
-    for (int i = 3; i < last - 1; i += 2)
-    {
-        if (maze.at(i - 1, last).tile == TileType::Floor && maze.at(i + 1, last).tile == TileType::Floor && chance(rng, 0.5f))
-        {
-            maze.at(i, last).tile = TileType::Floor;
-        }
-        if (maze.at(last, i - 1).tile == TileType::Floor && maze.at(last, i + 1).tile == TileType::Floor && chance(rng, 0.5f))
-        {
-            maze.at(last, i).tile = TileType::Floor;
-        }
-    }
 }
 
 // ---------------------------------------------------------------- chambers and loops
 
-bool roomsOverlap(const Room& a, const Room& b)
+bool isFarFromAll(const std::vector<GridPos>& chosen, GridPos candidate, int minimumDistance)
 {
-    // One tile of margin so two chambers never merge into one.
-    return a.left - 1 < b.left + b.width && b.left - 1 < a.left + a.width && a.top - 1 < b.top + b.height &&
-           b.top - 1 < a.top + a.height;
+    for (const GridPos& other : chosen)
+    {
+        const int distance = std::abs(other.row - candidate.row) + std::abs(other.col - candidate.col);
+        if (distance < minimumDistance)
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
-// Opens a few rectangular burial chambers. Their corners sit on carved cells,
+// Opens a few 3x3 burial chambers. Their corners sit on carved cells,
 // so every chamber is already connected to the corridors around it.
 void carveChambers(Maze& maze, int count, std::mt19937& rng)
 {
     const int size = maze.getSize();
     const int lastCell = (size % 2 == 0) ? size - 2 : size - 1;
-    std::vector<Room> rooms;
+    const int maxCorner = (lastCell - (ROOM_SIZE - 1)) / 2;  // in steps of 2 tiles
+    if (maxCorner < 2)
+    {
+        return;
+    }
+    std::uniform_int_distribution<int> pickCorner(1, maxCorner);
 
+    std::vector<GridPos> rooms;  // top-left corner of every chamber
     for (int attempt = 0; attempt < count * 20 && static_cast<int>(rooms.size()) < count; ++attempt)
     {
-        const int height = chance(rng, 0.5f) ? 3 : 5;
-        const int width = chance(rng, 0.5f) ? 3 : 5;
-        const int maxTop = (lastCell - (height - 1)) / 2;
-        const int maxLeft = (lastCell - (width - 1)) / 2;
-        if (maxTop < 1 || maxLeft < 1)
+        const GridPos corner{pickCorner(rng) * 2, pickCorner(rng) * 2};
+        if (corner.row + corner.col < 6 || !isFarFromAll(rooms, corner, 2 * ROOM_SIZE + 2))
         {
-            break;
+            continue;  // too close to the entrance or to another chamber
         }
 
-        std::uniform_int_distribution<int> pickTop(1, maxTop);
-        std::uniform_int_distribution<int> pickLeft(1, maxLeft);
-        const Room room{pickTop(rng) * 2, pickLeft(rng) * 2, height, width};
-
-        if (room.top + room.left < 6)
+        for (int row = corner.row; row < corner.row + ROOM_SIZE; ++row)
         {
-            continue;  // keep the entrance a normal corridor
-        }
-        bool free = true;
-        for (const Room& other : rooms)
-        {
-            free = free && !roomsOverlap(room, other);
-        }
-        if (!free)
-        {
-            continue;
-        }
-
-        for (int row = room.top; row < room.top + room.height; ++row)
-        {
-            for (int col = room.left; col < room.left + room.width; ++col)
+            for (int col = corner.col; col < corner.col + ROOM_SIZE; ++col)
             {
                 maze.at(row, col).tile = TileType::Floor;
             }
         }
-        rooms.push_back(room);
+        rooms.push_back(corner);
     }
 }
 
@@ -196,7 +156,7 @@ void addLoops(Maze& maze, float fraction, std::mt19937& rng)
 
     const int wanted = static_cast<int>(static_cast<float>(deadEnds.size()) * fraction);
     int added = 0;
-    int order[4] = {0, 1, 2, 3};
+    Direction order[4] = {Direction::Up, Direction::Down, Direction::Left, Direction::Right};
 
     for (const GridPos& end : deadEnds)
     {
@@ -210,10 +170,10 @@ void addLoops(Maze& maze, float fraction, std::mt19937& rng)
         }
 
         std::shuffle(order, order + 4, rng);
-        for (int direction : order)
+        for (Direction direction : order)
         {
-            const GridPos wall{end.row + NEIGHBOUR_ROW[direction], end.col + NEIGHBOUR_COL[direction]};
-            const GridPos beyond{end.row + CARVE_ROW[direction], end.col + CARVE_COL[direction]};
+            const GridPos wall = stepInDirection(end, direction);
+            const GridPos beyond = stepInDirection(wall, direction);
             if (maze.isInside(beyond) && maze.at(wall).tile == TileType::Wall && maze.at(beyond).tile == TileType::Floor)
             {
                 maze.at(wall).tile = TileType::Floor;
@@ -240,17 +200,20 @@ void placeCornerExit(Maze& maze)
 
 // ---------------------------------------------------------------- secret doors
 
-bool isFarFromAll(const std::vector<GridPos>& chosen, GridPos candidate, int minimumDistance)
+// How many steps a door between tiles a and b would save (0 if it saves nothing).
+int stepsSaved(const Maze& maze, const std::vector<int>& distances, GridPos a, GridPos b)
 {
-    for (const GridPos& other : chosen)
+    if (!maze.isInside(a) || !maze.isInside(b))
     {
-        const int distance = std::abs(other.row - candidate.row) + std::abs(other.col - candidate.col);
-        if (distance < minimumDistance)
-        {
-            return false;
-        }
+        return 0;
     }
-    return true;
+    const int first = distances[maze.toIndex(a)];
+    const int second = distances[maze.toIndex(b)];
+    if (first < 0 || second < 0)
+    {
+        return 0;
+    }
+    return std::abs(first - second) - 2;  // walking through the door takes 2 steps
 }
 
 // Turns walls that separate two corridors which are far apart along the maze into
@@ -276,22 +239,9 @@ int placeSecretDoors(Maze& maze, int count, std::mt19937& rng)
                 continue;
             }
 
-            int gain = 0;
-            const GridPos pairs[2][2] = {{{row - 1, col}, {row + 1, col}}, {{row, col - 1}, {row, col + 1}}};
-            for (const auto& pair : pairs)
-            {
-                if (!maze.isInside(pair[0]) || !maze.isInside(pair[1]))
-                {
-                    continue;
-                }
-                const int first = distances[maze.toIndex(pair[0])];
-                const int second = distances[maze.toIndex(pair[1])];
-                if (first >= 0 && second >= 0)
-                {
-                    gain = std::max(gain, std::abs(first - second) - 2);
-                }
-            }
-
+            // Corridors above and below, or to the left and right of this wall.
+            const int gain = std::max(stepsSaved(maze, distances, {row - 1, col}, {row + 1, col}),
+                                      stepsSaved(maze, distances, {row, col - 1}, {row, col + 1}));
             if (gain >= minimumGain)
             {
                 candidates.push_back(GridPos{row, col});
@@ -338,46 +288,27 @@ int placeOnFreeTiles(Maze& maze, const std::vector<GridPos>& tiles, int count, I
     return placed;
 }
 
-// The relic waits at the end of the longest detour from the true route
-// (a dead end if there is one far enough, otherwise the farthest tile off the route).
+// The relic waits in the dead end that is the longest detour from the true route.
 bool placeRelic(Maze& maze, const std::vector<GridPos>& tiles, const std::vector<int>& fromStart,
-                const std::vector<int>& fromExit, int routeLength, std::mt19937& rng)
+                const std::vector<int>& fromExit, int routeLength)
 {
-    int longestDetour = 0;
+    GridPos best;
+    int bestDetour = 0;
     for (const GridPos& pos : tiles)
     {
         const std::size_t index = maze.toIndex(pos);
-        longestDetour = std::max(longestDetour, fromStart[index] + fromExit[index] - routeLength);
+        const int detour = fromStart[index] + fromExit[index] - routeLength;  // extra steps to visit this tile
+        if (detour > bestDetour && countOpenNeighbours(maze, pos, PathMode::WalkableOnly) == 1)
+        {
+            best = pos;
+            bestDetour = detour;
+        }
     }
-    if (longestDetour <= 0)
+    if (bestDetour == 0)
     {
         return false;
     }
-
-    std::vector<GridPos> deadEnds;
-    std::vector<GridPos> farTiles;
-    const int minimumDetour = static_cast<int>(static_cast<float>(longestDetour) * RELIC_DETOUR_RATIO);
-    for (const GridPos& pos : tiles)
-    {
-        const std::size_t index = maze.toIndex(pos);
-        const int detour = fromStart[index] + fromExit[index] - routeLength;
-        if (detour < std::max(1, minimumDetour))
-        {
-            continue;
-        }
-        farTiles.push_back(pos);
-        if (countOpenNeighbours(maze, pos, PathMode::WalkableOnly) == 1)
-        {
-            deadEnds.push_back(pos);
-        }
-    }
-
-    const std::vector<GridPos>& pool = deadEnds.empty() ? farTiles : deadEnds;
-    if (pool.empty())
-    {
-        return false;
-    }
-    maze.at(pool[static_cast<std::size_t>(randomIndex(rng, pool.size()))]).item = ItemType::Relic;
+    maze.at(best).item = ItemType::Relic;
     return true;
 }
 
@@ -420,7 +351,7 @@ void placeItems(Maze& maze, const GenerationSettings& settings, int keyCount, st
 
     if (settings.relic)
     {
-        result.relicPlaced = placeRelic(maze, allTiles, fromStart, fromExit, routeLength, rng);
+        result.relicPlaced = placeRelic(maze, allTiles, fromStart, fromExit, routeLength);
     }
 
     std::shuffle(allTiles.begin(), allTiles.end(), rng);
@@ -444,7 +375,7 @@ bool generateMaze(Maze& maze, int size, const GenerationSettings& settings, std:
         return false;
     }
 
-    carveGrowingTree(maze, rng);
+    carveCorridors(maze, rng);
     openEvenEdges(maze, rng);
     carveChambers(maze, settings.chambers, rng);
     addLoops(maze, settings.loopFraction, rng);

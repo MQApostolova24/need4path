@@ -4,7 +4,7 @@
 #include "raylib.h"
 
 // Drawing of the pyramid (top-down view): stone tiles, rewards, the guardian,
-// torch light, weather particles, the timer effect and the explorer.
+// the darkness, weather (sand, fireflies, rain), the timer effect and the explorer.
 
 struct MazeView
 {

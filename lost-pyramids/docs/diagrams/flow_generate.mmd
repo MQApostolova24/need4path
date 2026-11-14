@@ -1,0 +1,16 @@
+flowchart LR
+  subgraph S1 [1. Build the corridors]
+    direction TB
+    A([Size N chosen]) --> B[Create the N x N<br/>dynamic array, all walls]
+    B --> C[Dig corridors with a stack<br/>from the top-left corner]
+    C --> D[Add 3x3 chambers and<br/>open some dead ends - loops]
+    D --> E[Exit in the<br/>bottom-right corner]
+  end
+  subgraph S2 [2. Fill the pyramid]
+    direction TB
+    F[BFS from the start:<br/>walking distances] --> G[Walls that save many steps<br/>become secret doors]
+    G --> H[BFS from start and exit:<br/>the shortest route]
+    H --> I[Keys, treasure, time anywhere;<br/>traps and gems off the route;<br/>relic in the farthest dead end]
+    I --> J([Pyramid ready])
+  end
+  E --> F

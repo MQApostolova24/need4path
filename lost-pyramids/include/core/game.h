@@ -21,15 +21,6 @@ enum class LightMode
     Flashlight  // Hard: a flashlight beam; outside it only a faint outline of the walls and the exit
 };
 
-enum class Direction
-{
-    None,
-    Up,
-    Down,
-    Left,
-    Right
-};
-
 enum class GameStatus
 {
     NotStarted,
@@ -183,5 +174,3 @@ int calculateScore(const GameState& state);
 // +1 = no life lost and at least a third of the starting time left.
 int calculateStars(const GameState& state);
 
-// The neighbouring tile in the given direction.
-GridPos stepInDirection(GridPos pos, Direction direction);

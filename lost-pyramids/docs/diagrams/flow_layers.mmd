@@ -1,0 +1,7 @@
+flowchart LR
+  M["main.cpp<br/>window + main loop"] --> U["UI layer (src/ui)<br/>screens, drawing, input<br/>uses raylib"]
+  U --> S["Storage layer (src/storage)<br/>data/*.txt files"]
+  U --> C["Core layer (src/core)<br/>maze, rules, score, accounts<br/>no graphics, no files, no cin/cout"]
+  S --> C
+  T["Tests (tests/)<br/>33 test functions"] --> C
+  T --> S

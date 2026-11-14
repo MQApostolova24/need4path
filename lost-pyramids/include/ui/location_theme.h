@@ -7,35 +7,35 @@
 
 struct LocationPalette
 {
+    // Backdrop scene
     Color skyTop;
     Color skyBottom;
-    Color sun;
-    Color hillFar;
-    Color hillNear;
+    Color sun;         // sun or moon
     Color ground;
     Color groundLight;
     Color monumentLit;
     Color monumentShade;
 
-    Color wall;       // maze walls
+    // Maze tiles
+    Color wall;
     Color wallLight;
     Color wallDark;
-    Color wallDetail; // moss, carvings
-    Color floorA;     // maze floor (checkered)
+    Color floorA;      // the floor is checkered with two colours
     Color floorB;
     Color floorLine;
 
-    Color accent;     // gold / jade / lotus pink
+    // Items and effects
+    Color accent;      // gold / jade / lotus pink
     Color accentDark;
-    Color accentSoft; // second accent: turquoise / red ochre / gold
+    Color accentSoft;  // second accent: turquoise / red ochre / gold
     Color gem;
-    Color glow;       // torch light colour
-    Color particle;   // sand, fireflies, rain
+    Color glow;        // torch light colour
+    Color particle;    // sand, fireflies, rain
 };
 
 const LocationPalette& getPalette(Location location);
 
-// Draws the location's landscape (sky, pyramid, scenery, weather) inside any rectangle.
+// Draws the location's landscape (sky, pyramids, ground, stars / fireflies / rain) inside any rectangle.
 void drawLocationScene(Location location, Rectangle area, float time);
 
 // The landscapes of all three locations, slowly cross-fading - used behind the menus.

@@ -11,12 +11,12 @@
 
 namespace
 {
-const float MAX_DARKNESS = 0.8f;            // Medium: the layout stays visible in the dark
+const float TORCH_MAX_DARKNESS = 0.8f;       // Medium: the layout stays visible in the dark
 const float FLASHLIGHT_MAX_DARKNESS = 0.88f; // Hard: only a faint outline of the walls (requirement 6)
-const float URGENT_TIME_FRACTION = 0.35f;
-const int PARTICLE_COUNT = 40;
+const float URGENT_TIME_FRACTION = 0.35f;    // the timer effect starts at 35% time left
 const Color WATER = {70, 150, 220, 255};
 const Color ECLIPSE_SHADOW = {20, 8, 30, 255};
+const int PARTICLE_COUNT = 40;
 
 Rectangle getCellRect(const MazeView& view, int row, int col)
 {
@@ -39,118 +39,69 @@ bool isWallLike(const Maze& maze, int row, int col)
     return tile == TileType::Wall || tile == TileType::SecretDoor;
 }
 
-// ---------------------------------------------------------------- tiles
+// ---------------------------------------------------------------- tile decorations
 
+// Small location details on some wall blocks. tilePattern gives every tile a fixed
+// number 0..9, so the same blocks always get the same decoration (no flickering).
 void drawWallDetails(Location location, Rectangle top, int row, int col)
 {
     const LocationPalette& p = getPalette(location);
-    const float roll = hash01(row, col, 11);
+    const int pattern = tilePattern(row, col);
     const float size = top.width;
+    const Vector2 c = {top.x + size * 0.5f, top.y + top.height * 0.55f};
 
     switch (location)
     {
     case Location::Egypt:
-        if (roll > 0.88f)
+        if (pattern == 0)  // a carved hieroglyph (a small ankh)
         {
-            // A tiny carved hieroglyph
-            const Vector2 c = {top.x + size * 0.5f, top.y + top.height * 0.55f};
-            DrawRing({c.x, c.y - size * 0.1f}, size * 0.05f, size * 0.09f, 0.0f, 360.0f, 10, p.wallDetail);
-            DrawLineEx({c.x, c.y - size * 0.02f}, {c.x, c.y + size * 0.2f}, std::fmax(1.0f, size * 0.05f), p.wallDetail);
+            DrawRing({c.x, c.y - size * 0.1f}, size * 0.05f, size * 0.09f, 0.0f, 360.0f, 10, p.wallDark);
+            DrawLineEx({c.x, c.y - size * 0.02f}, {c.x, c.y + size * 0.2f}, std::fmax(1.0f, size * 0.05f), p.wallDark);
         }
         break;
     case Location::Mexico:
-        if (roll < 0.3f)
+        if (pattern < 3)  // moss growing on the limestone
         {
-            // Moss growing on the limestone
-            const float mx = top.x + size * (0.25f + 0.5f * hash01(row, col, 12));
-            DrawEllipse(static_cast<int>(mx), static_cast<int>(top.y + top.height * 0.3f), size * 0.22f, size * 0.12f,
-                        Fade(p.wallDetail, 0.75f));
-        }
-        else if (roll > 0.9f)
-        {
-            // Step-fret carving
-            const float x0 = top.x + size * 0.2f;
-            const float y0 = top.y + top.height * 0.75f;
-            const float s = size * 0.15f;
-            const float t = std::fmax(1.0f, size * 0.06f);
-            DrawLineEx({x0, y0}, {x0 + s, y0}, t, p.wallDark);
-            DrawLineEx({x0 + s, y0}, {x0 + s, y0 - s}, t, p.wallDark);
-            DrawLineEx({x0 + s, y0 - s}, {x0 + 2.0f * s, y0 - s}, t, p.wallDark);
-            DrawLineEx({x0 + 2.0f * s, y0 - s}, {x0 + 2.0f * s, y0 - 2.0f * s}, t, p.wallDark);
-            DrawLineEx({x0 + 2.0f * s, y0 - 2.0f * s}, {x0 + 3.0f * s, y0 - 2.0f * s}, t, p.wallDark);
+            DrawEllipse(static_cast<int>(c.x), static_cast<int>(top.y + top.height * 0.3f), size * 0.22f, size * 0.12f,
+                        Fade(p.groundLight, 0.8f));
         }
         break;
     case Location::Cambodia:
-        // Laterite stone is full of small holes
-        for (int i = 0; i < 3; ++i)
-        {
-            DrawCircleV({top.x + size * (0.15f + 0.7f * hash01(row, col, 20 + i)),
-                         top.y + top.height * (0.25f + 0.6f * hash01(row, col, 30 + i))},
-                        std::fmax(1.0f, size * 0.04f), Fade(p.wallDark, 0.6f));
-        }
-        if (roll < 0.22f)
-        {
-            DrawEllipse(static_cast<int>(top.x + size * 0.7f), static_cast<int>(top.y + top.height * 0.25f), size * 0.18f,
-                        size * 0.1f, Fade(p.wallDetail, 0.7f));
-        }
+        // laterite stone is full of small holes
+        DrawCircleV({top.x + size * 0.25f, top.y + top.height * 0.35f}, std::fmax(1.0f, size * 0.04f), Fade(p.wallDark, 0.6f));
+        DrawCircleV({top.x + size * (0.5f + 0.04f * static_cast<float>(pattern)), top.y + top.height * 0.75f},
+                    std::fmax(1.0f, size * 0.04f), Fade(p.wallDark, 0.6f));
         break;
     }
 }
 
+// A crack, a grain of sand, a leaf or a puddle on some floor slabs.
 void drawFloorDetails(Location location, Rectangle rect, int row, int col)
 {
     const LocationPalette& p = getPalette(location);
-    const float roll = hash01(row, col, 41);
+    const int pattern = tilePattern(row, col);
     const float size = rect.width;
 
-    switch (location)
+    if (pattern == 9)  // a crack in the slab
     {
-    case Location::Egypt:
-        if (roll < 0.5f)
-        {
-            DrawCircleV({rect.x + size * hash01(row, col, 42), rect.y + size * hash01(row, col, 43)},
-                        std::fmax(1.0f, size * 0.04f), Fade(p.particle, 0.25f));
-        }
-        break;
-    case Location::Mexico:
-        if (roll < 0.18f)
-        {
-            DrawEllipse(static_cast<int>(rect.x + size * (0.2f + 0.6f * hash01(row, col, 44))),
-                        static_cast<int>(rect.y + size * (0.3f + 0.5f * hash01(row, col, 45))), size * 0.12f, size * 0.06f,
-                        Fade(p.wallDetail, 0.55f));
-        }
-        break;
-    case Location::Cambodia:
-        if (roll < 0.12f)
-        {
-            DrawEllipse(static_cast<int>(rect.x + size * 0.5f), static_cast<int>(rect.y + size * 0.6f), size * 0.32f,
-                        size * 0.16f, Fade(WATER, 0.22f));
-        }
-        break;
+        DrawLineEx({rect.x + size * 0.2f, rect.y + size * 0.3f}, {rect.x + size * 0.55f, rect.y + size * 0.5f}, 1.0f, p.floorLine);
+        DrawLineEx({rect.x + size * 0.55f, rect.y + size * 0.5f}, {rect.x + size * 0.7f, rect.y + size * 0.8f}, 1.0f, p.floorLine);
     }
-
-    if (roll > 0.92f)
+    else if (pattern == 4)
     {
-        // A crack in the slab
-        DrawLineEx({rect.x + size * 0.2f, rect.y + size * 0.3f}, {rect.x + size * 0.55f, rect.y + size * 0.5f}, 1.0f,
-                   p.floorLine);
-        DrawLineEx({rect.x + size * 0.55f, rect.y + size * 0.5f}, {rect.x + size * 0.7f, rect.y + size * 0.8f}, 1.0f,
-                   p.floorLine);
-    }
-}
-
-// Soft shadows thrown by the walls above and to the left of a floor tile.
-void drawFloorShadows(const Maze& maze, Rectangle rect, int row, int col)
-{
-    if (isWallLike(maze, row - 1, col))
-    {
-        DrawRectangleGradientV(static_cast<int>(rect.x), static_cast<int>(rect.y), static_cast<int>(rect.width),
-                               static_cast<int>(rect.height * 0.4f), Fade(BLACK, 0.45f), Fade(BLACK, 0.0f));
-    }
-    if (isWallLike(maze, row, col - 1))
-    {
-        DrawRectangleGradientH(static_cast<int>(rect.x), static_cast<int>(rect.y), static_cast<int>(rect.width * 0.25f),
-                               static_cast<int>(rect.height), Fade(BLACK, 0.3f), Fade(BLACK, 0.0f));
+        const Vector2 c = {rect.x + size * 0.5f, rect.y + size * 0.6f};
+        switch (location)
+        {
+        case Location::Egypt:
+            DrawCircleV(c, std::fmax(1.0f, size * 0.05f), Fade(p.particle, 0.3f));
+            break;
+        case Location::Mexico:
+            DrawEllipse(static_cast<int>(c.x), static_cast<int>(c.y), size * 0.12f, size * 0.06f, Fade(p.groundLight, 0.6f));
+            break;
+        case Location::Cambodia:
+            DrawEllipse(static_cast<int>(c.x), static_cast<int>(c.y), size * 0.32f, size * 0.16f, Fade(WATER, 0.22f));
+            break;
+        }
     }
 }
 
@@ -230,88 +181,12 @@ void drawItems(const GameState& state, const MazeView& view, float time)
     }
 }
 
-// ---------------------------------------------------------------- light and atmosphere
+// ---------------------------------------------------------------- light, weather and the timer
 
-// Darkens one tile with a smooth blend between the darkness at its four corners.
-// The tile is split into small squares, each with its own shade (bilinear blend).
-// This works the same on every graphics driver.
-void drawDarkness(Rectangle rect, float topLeft, float bottomLeft, float bottomRight, float topRight)
-{
-    const int parts = rect.width >= 24.0f ? 3 : 2;
-    const float step = rect.width / static_cast<float>(parts);
-    for (int i = 0; i < parts; ++i)
-    {
-        for (int j = 0; j < parts; ++j)
-        {
-            const float u = (static_cast<float>(j) + 0.5f) / static_cast<float>(parts);  // left -> right
-            const float v = (static_cast<float>(i) + 0.5f) / static_cast<float>(parts);  // top -> bottom
-            const float top = topLeft + (topRight - topLeft) * u;
-            const float bottom = bottomLeft + (bottomRight - bottomLeft) * u;
-            const float darkness = top + (bottom - top) * v;
-            if (darkness > 0.01f)
-            {
-                DrawRectangleRec({rect.x + step * static_cast<float>(j), rect.y + step * static_cast<float>(i), step + 0.5f,
-                                  step + 0.5f},
-                                 Fade(BLACK, darkness));
-            }
-        }
-    }
-}
-
-float darknessAt(float row, float col, const GridPos& player, float radius)
-{
-    const float rowOffset = row - (static_cast<float>(player.row) + 0.5f);
-    const float colOffset = col - (static_cast<float>(player.col) + 0.5f);
-    const float distance = std::sqrt(rowOffset * rowOffset + colOffset * colOffset);
-    const float inner = radius * 0.45f;
-    const float outer = radius + 0.6f;
-    const float t = std::clamp((distance - inner) / (outer - inner), 0.0f, 1.0f);
-    return MAX_DARKNESS * t * t * (3.0f - 2.0f * t);  // smoothstep
-}
-
-// The darkness is worked out at the corners of every tile and blended across the tile,
-// so the edge of the torch light is a smooth circle instead of square steps.
-void drawTorchLight(const GameState& state, const MazeView& view, float time, float baseRadius)
-{
-    const int size = state.maze.getSize();
-    const float radius = baseRadius + 0.15f * std::sin(time * 9.0f) + 0.08f * std::sin(time * 23.0f);
-
-    std::vector<float> corners(static_cast<std::size_t>((size + 1) * (size + 1)));
-    for (int row = 0; row <= size; ++row)
-    {
-        for (int col = 0; col <= size; ++col)
-        {
-            corners[static_cast<std::size_t>(row * (size + 1) + col)] =
-                darknessAt(static_cast<float>(row), static_cast<float>(col), state.player, radius);
-        }
-    }
-
-    for (int row = 0; row < size; ++row)
-    {
-        for (int col = 0; col < size; ++col)
-        {
-            const float topLeft = corners[static_cast<std::size_t>(row * (size + 1) + col)];
-            const float topRight = corners[static_cast<std::size_t>(row * (size + 1) + col + 1)];
-            const float bottomLeft = corners[static_cast<std::size_t>((row + 1) * (size + 1) + col)];
-            const float bottomRight = corners[static_cast<std::size_t>((row + 1) * (size + 1) + col + 1)];
-            if (topLeft + topRight + bottomLeft + bottomRight < 0.02f)
-            {
-                continue;
-            }
-            drawDarkness(getCellRect(view, row, col), topLeft, bottomLeft, bottomRight, topRight);
-        }
-    }
-
-    // Warm glow of the torch
-    const Vector2 center = getRectCenter(getCellRect(view, state.player.row, state.player.col));
-    const Color glow = getPalette(state.location).glow;
-    DrawCircleGradient(center, radius * view.tileSize * 1.1f, Fade(glow, 0.16f), Fade(glow, 0.0f));
-}
-
-// Hard: the flashlight is the only real light. The light of every tile is blended at the
-// corners so the beam has soft edges. Outside the beam the pyramid is very dark, but a faint
-// outline of the walls stays visible, so the player always sees the layout (requirement 6).
-void drawFlashlightDarkness(const GameState& state, const MazeView& view)
+// Covers the pyramid with darkness: the less light a tile gets, the darker it is.
+// To make the edge of the light soft, every tile is split into 4 small squares and each
+// square mixes the tile's own light with the light of the 3 tiles next to that corner.
+void drawDarkness(const GameState& state, const MazeView& view, float maxDarkness)
 {
     const int size = state.maze.getSize();
     std::vector<float> light(static_cast<std::size_t>(size * size));
@@ -322,70 +197,67 @@ void drawFlashlightDarkness(const GameState& state, const MazeView& view)
             light[static_cast<std::size_t>(row * size + col)] = getLightLevel(state, row, col);
         }
     }
-
-    // Light at a tile corner = average of the (up to) four tiles that share that corner.
-    auto cornerDarkness = [&](int row, int col) {
-        float sum = 0.0f;
-        for (int r = row - 1; r <= row; ++r)
-        {
-            for (int c = col - 1; c <= col; ++c)
-            {
-                if (r >= 0 && r < size && c >= 0 && c < size)
-                {
-                    sum += light[static_cast<std::size_t>(r * size + c)];
-                }
-            }
-        }
-        return FLASHLIGHT_MAX_DARKNESS * (1.0f - std::clamp(sum / 4.0f * 1.6f, 0.0f, 1.0f));
+    // Light of a tile, or of the nearest tile inside the pyramid at the border.
+    auto lightAt = [&](int row, int col) {
+        row = std::clamp(row, 0, size - 1);
+        col = std::clamp(col, 0, size - 1);
+        return light[static_cast<std::size_t>(row * size + col)];
     };
 
+    const float half = view.tileSize / 2.0f;
     for (int row = 0; row < size; ++row)
     {
         for (int col = 0; col < size; ++col)
         {
-            const float topLeft = cornerDarkness(row, col);
-            const float topRight = cornerDarkness(row, col + 1);
-            const float bottomLeft = cornerDarkness(row + 1, col);
-            const float bottomRight = cornerDarkness(row + 1, col + 1);
             const Rectangle rect = getCellRect(view, row, col);
-            if (topLeft + topRight + bottomLeft + bottomRight > 0.02f)
+            for (int dy = -1; dy <= 1; dy += 2)  // top half, bottom half
             {
-                drawDarkness(rect, topLeft, bottomLeft, bottomRight, topRight);
+                for (int dx = -1; dx <= 1; dx += 2)  // left half, right half
+                {
+                    const float corner = (lightAt(row, col) + lightAt(row + dy, col) + lightAt(row, col + dx) +
+                                          lightAt(row + dy, col + dx)) / 4.0f;
+                    const float mixed = (lightAt(row, col) + corner) / 2.0f;
+                    const float darkness = maxDarkness * (1.0f - mixed);
+                    if (darkness > 0.01f)
+                    {
+                        const float x = dx < 0 ? rect.x : rect.x + half;
+                        const float y = dy < 0 ? rect.y : rect.y + half;
+                        DrawRectangleRec({x, y, half + 0.5f, half + 0.5f}, Fade(BLACK, darkness));
+                    }
+                }
             }
         }
     }
 }
 
-// Sand motes, fireflies or rain drifting over the pyramid.
+// Sand blowing (Egypt), fireflies (Mexico) or rain (Cambodia) over the pyramid.
 void drawParticles(Location location, Rectangle area, float time)
 {
     const Color color = getPalette(location).particle;
     for (int i = 0; i < PARTICLE_COUNT; ++i)
     {
-        const float a = hash01(i, 1, 51);
-        const float b = hash01(i, 2, 51);
+        const float x = spread(i);                                          // 0..1 across
+        const float y = static_cast<float>(i) / static_cast<float>(PARTICLE_COUNT);  // 0..1 down
         switch (location)
         {
         case Location::Egypt:
         {
-            const float fx = std::fmod(a + time * (0.01f + 0.02f * b), 1.0f);
-            const float fy = std::fmod(b + 0.02f * std::sin(time + static_cast<float>(i)) + 1.0f, 1.0f);
-            DrawCircleV({area.x + fx * area.width, area.y + fy * area.height}, 1.5f, Fade(color, 0.3f));
+            const float moved = std::fmod(x + time * 0.02f, 1.0f);  // drifts to the right
+            DrawCircleV({area.x + moved * area.width, area.y + y * area.height}, 1.5f, Fade(color, 0.35f));
             break;
         }
         case Location::Mexico:
         {
-            const float blink = std::fmax(0.0f, std::sin(time * (1.2f + b) + static_cast<float>(i) * 2.1f));
-            const Vector2 pos = {area.x + (a + 0.02f * std::sin(time * 0.6f + static_cast<float>(i))) * area.width,
-                                 area.y + (b + 0.02f * std::cos(time * 0.8f + static_cast<float>(i))) * area.height};
+            const float blink = std::fmax(0.0f, std::sin(time * 1.5f + static_cast<float>(i) * 2.1f));
+            const Vector2 pos = {area.x + x * area.width, area.y + y * area.height};
             DrawCircleV(pos, 5.0f, Fade(color, 0.12f * blink));
             DrawCircleV(pos, 1.8f, Fade(color, 0.7f * blink));
             break;
         }
         case Location::Cambodia:
         {
-            const float fall = std::fmod(b + time * (0.6f + 0.3f * a), 1.0f);
-            const Vector2 top = {area.x + a * area.width - fall * 20.0f, area.y + fall * area.height};
+            const float fall = std::fmod(y + time * 0.7f, 1.0f);  // falls down and starts again at the top
+            const Vector2 top = {area.x + x * area.width, area.y + fall * area.height};
             DrawLineEx(top, {top.x - 3.0f, top.y + 14.0f}, 1.0f, Fade(color, 0.3f));
             break;
         }
@@ -393,56 +265,34 @@ void drawParticles(Location location, Rectangle area, float time)
     }
 }
 
-// As the timer runs low, the location itself closes in on the player.
+// When the time runs low, the location closes in on the player.
 void drawTimerPressure(const GameState& state, Rectangle area, float time)
 {
     const float fraction = getTimeFraction(state);
-    const float urgency = std::clamp((URGENT_TIME_FRACTION - fraction) / URGENT_TIME_FRACTION, 0.0f, 1.0f);
-    if (urgency <= 0.0f)
+    if (fraction >= URGENT_TIME_FRACTION)
     {
         return;
     }
-
+    const float urgency = (URGENT_TIME_FRACTION - fraction) / URGENT_TIME_FRACTION;  // 0 -> 1
     const LocationPalette& p = getPalette(state.location);
-    const int x = static_cast<int>(area.x);
-    const int y = static_cast<int>(area.y);
-    const int width = static_cast<int>(area.width);
-    const int height = static_cast<int>(area.height);
 
     switch (state.location)
     {
-    case Location::Egypt:
-    {
-        // Sand pours in from the edges
-        const int band = static_cast<int>(area.width * 0.14f * urgency);
-        const Color sand = Fade(p.groundLight, 0.6f * urgency);
-        DrawRectangleGradientV(x, y, width, band, sand, Fade(sand, 0.0f));
-        DrawRectangleGradientV(x, y + height - band, width, band, Fade(sand, 0.0f), sand);
-        DrawRectangleGradientH(x, y, band, height, sand, Fade(sand, 0.0f));
-        DrawRectangleGradientH(x + width - band, y, band, height, Fade(sand, 0.0f), sand);
-        for (int i = 0; i < 8; ++i)
-        {
-            const float sx = area.x + area.width * hash01(i, 3, 61);
-            const float length = area.height * (0.1f + 0.2f * urgency) * (0.6f + 0.4f * std::sin(time * 3.0f + static_cast<float>(i)));
-            DrawLineEx({sx, area.y}, {sx, area.y + length}, 2.0f, Fade(p.groundLight, 0.5f * urgency));
-        }
+    case Location::Egypt:  // sand pours in from the edges
+        DrawRectangleLinesEx(area, area.width * 0.12f * urgency, Fade(p.groundLight, 0.55f * urgency));
         break;
-    }
-    case Location::Mexico:
-        // The eclipse darkens the whole temple
+    case Location::Mexico:  // the eclipse darkens the whole temple
         DrawRectangleRec(area, Fade(ECLIPSE_SHADOW, 0.45f * urgency));
         DrawRectangleLinesEx(area, 6.0f, Fade(p.accentSoft, 0.4f * urgency));
         break;
-    case Location::Cambodia:
+    case Location::Cambodia:  // flood water rises from the bottom, with waves on top
     {
-        // Flood water rises from the bottom
         const float level = area.height * 0.45f * urgency;
         const float top = area.y + area.height - level;
         DrawRectangleRec({area.x, top, area.width, level}, Fade(WATER, 0.3f));
-        for (float wx = area.x; wx < area.x + area.width; wx += 12.0f)
+        for (float x = area.x; x < area.x + area.width; x += 12.0f)
         {
-            const float wave = std::sin(time * 3.0f + wx * 0.05f) * 3.0f;
-            DrawCircleV({wx, top + wave}, 4.0f, Fade(WATER, 0.35f));
+            DrawCircleV({x, top + std::sin(time * 3.0f + x * 0.05f) * 3.0f}, 4.0f, Fade(WATER, 0.35f));
         }
         break;
     }
@@ -467,24 +317,21 @@ void drawWallTile(Location location, Rectangle rect, int row, int col, bool show
     const float frontHeight = showFront ? std::floor(rect.height * 0.28f) : 0.0f;
     const Rectangle top = {rect.x, rect.y, rect.width, rect.height - frontHeight};
 
-    // Top surface of the block
+    // Top of the stone block, with a light edge
     DrawRectangleRec(top, p.wall);
-    DrawRectangleRec({top.x, top.y, top.width, std::fmax(1.0f, std::floor(top.height * 0.14f))}, p.wallLight);
+    DrawRectangleRec({top.x, top.y, top.width, std::fmax(1.0f, top.height * 0.14f)}, p.wallLight);
 
+    // Mortar lines: one across the middle, one seam that moves on every other block
     if (rect.width >= 12.0f)
     {
-        // Mortar seams, shifted on every other block
-        const bool even = (row + col) % 2 == 0;
         const float middleY = top.y + top.height * 0.55f;
-        const float seamTop = top.x + top.width * (even ? 0.3f : 0.7f);
-        const float seamBottom = top.x + top.width * (even ? 0.7f : 0.3f);
+        const float seamX = top.x + top.width * ((row + col) % 2 == 0 ? 0.3f : 0.7f);
         DrawLineEx({top.x, middleY}, {top.x + top.width, middleY}, 1.0f, p.wallDark);
-        DrawLineEx({seamTop, top.y + top.height * 0.14f}, {seamTop, middleY}, 1.0f, p.wallDark);
-        DrawLineEx({seamBottom, middleY}, {seamBottom, top.y + top.height}, 1.0f, p.wallDark);
+        DrawLineEx({seamX, middleY}, {seamX, top.y + top.height}, 1.0f, p.wallDark);
         drawWallDetails(location, top, row, col);
     }
 
-    // Front face of the block (only visible when the tile below is open)
+    // Front face of the block (only when the tile below is open), so walls look raised
     if (showFront)
     {
         DrawRectangleGradientV(static_cast<int>(rect.x), static_cast<int>(top.y + top.height), static_cast<int>(rect.width),
@@ -495,9 +342,8 @@ void drawWallTile(Location location, Rectangle rect, int row, int col, bool show
 void drawFloorTile(Location location, Rectangle rect, int row, int col)
 {
     const LocationPalette& p = getPalette(location);
-    DrawRectangleRec(rect, (row + col) % 2 == 0 ? p.floorA : p.floorB);
-    DrawLineEx({rect.x, rect.y + rect.height - 0.5f}, {rect.x + rect.width, rect.y + rect.height - 0.5f}, 1.0f, p.floorLine);
-    DrawLineEx({rect.x + rect.width - 0.5f, rect.y}, {rect.x + rect.width - 0.5f, rect.y + rect.height}, 1.0f, p.floorLine);
+    DrawRectangleRec(rect, (row + col) % 2 == 0 ? p.floorA : p.floorB);  // checkered slabs
+    DrawRectangleLinesEx(rect, 1.0f, p.floorLine);
     if (rect.width >= 12.0f)
     {
         drawFloorDetails(location, rect, row, col);
@@ -543,7 +389,11 @@ void drawMazeScene(const GameState& state, const MazeView& view, float time, int
             case TileType::Floor:
             case TileType::Exit:
                 drawFloorTile(location, rect, row, col);
-                drawFloorShadows(maze, rect, row, col);
+                if (isWallLike(maze, row - 1, col))  // soft shadow of the wall above
+                {
+                    DrawRectangleGradientV(static_cast<int>(rect.x), static_cast<int>(rect.y), static_cast<int>(rect.width),
+                                           static_cast<int>(rect.height * 0.4f), Fade(BLACK, 0.45f), Fade(BLACK, 0.0f));
+                }
                 break;
             }
         }
@@ -557,22 +407,19 @@ void drawMazeScene(const GameState& state, const MazeView& view, float time, int
                            view.tileSize, time);
     }
 
-    // 3. Weather, timer effect and light
+    // 3. Weather, timer effect and darkness (kept inside the maze area)
     BeginScissorMode(static_cast<int>(area.x), static_cast<int>(area.y), static_cast<int>(total), static_cast<int>(total));
     drawParticles(location, area, time);
-    switch (settings.light)
+    drawTimerPressure(state, area, time);
+    if (settings.light == LightMode::Torch)
     {
-    case LightMode::FullLight:
-        drawTimerPressure(state, area, time);
-        break;
-    case LightMode::Torch:
-        drawTorchLight(state, view, time, settings.lightRange);
-        drawTimerPressure(state, area, time);
-        break;
-    case LightMode::Flashlight:
-        drawTimerPressure(state, area, time);  // drawn first, so it is hidden in the dark too
-        drawFlashlightDarkness(state, view);
-        break;
+        drawDarkness(state, view, TORCH_MAX_DARKNESS);
+        const Vector2 player = getRectCenter(getCellRect(view, state.player.row, state.player.col));
+        DrawCircleGradient(player, settings.lightRange * view.tileSize, Fade(p.glow, 0.16f), Fade(p.glow, 0.0f));
+    }
+    else if (settings.light == LightMode::Flashlight)
+    {
+        drawDarkness(state, view, FLASHLIGHT_MAX_DARKNESS);
     }
     EndScissorMode();
 

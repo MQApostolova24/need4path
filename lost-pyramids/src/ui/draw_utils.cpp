@@ -1,16 +1,16 @@
 #include "ui/draw_utils.h"
 
 #include <cmath>
-#include <cstdint>
 
-float hash01(int a, int b, int salt)
+float spread(int index)
 {
-    std::uint32_t value = static_cast<std::uint32_t>(a) * 73856093u ^ static_cast<std::uint32_t>(b) * 19349663u ^
-                          static_cast<std::uint32_t>(salt) * 83492791u;
-    value ^= value >> 13;
-    value *= 0x5bd1e995u;
-    value ^= value >> 15;
-    return static_cast<float>(value % 10000u) / 10000.0f;
+    return std::fmod(static_cast<float>(index) * 0.618f, 1.0f);
+}
+
+int tilePattern(int row, int col)
+{
+    // Mix the row and column with a few prime numbers; the remainders look scattered.
+    return (row * row * 37 + col * col * 61 + row * col * 13) % 101 % 10;
 }
 
 float Frame::x(float fraction) const
@@ -38,25 +38,21 @@ Vector2 Frame::at(float fx, float fy) const
     return {x(fx), y(fy)};
 }
 
-void drawTriangleAnyOrder(Vector2 a, Vector2 b, Vector2 c, Color color)
+void drawTriangle(Vector2 a, Vector2 b, Vector2 c, Color color)
 {
-    // raylib needs counter-clockwise corners (as seen on screen, where y grows downwards).
-    // The sign of the cross product tells us the current order.
-    const float cross = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-    if (cross < 0.0f)
-    {
-        DrawTriangle(a, b, c, color);
-    }
-    else
-    {
-        DrawTriangle(a, c, b, color);
-    }
+    // raylib only draws a triangle whose corners go round in one direction
+    // (the other side is "facing away" and skipped). Drawing both orders means
+    // exactly one of them is shown, whatever order the corners came in.
+    DrawTriangle(a, b, c, color);
+    DrawTriangle(a, c, b, color);
 }
 
 void drawDiamond(Vector2 center, float radius, Color color)
 {
     const Vector2 top = {center.x, center.y - radius};
     const Vector2 bottom = {center.x, center.y + radius};
-    drawTriangleAnyOrder(top, {center.x - radius, center.y}, {center.x + radius, center.y}, color);
-    drawTriangleAnyOrder(bottom, {center.x - radius, center.y}, {center.x + radius, center.y}, color);
+    const Vector2 left = {center.x - radius, center.y};
+    const Vector2 right = {center.x + radius, center.y};
+    drawTriangle(top, left, right, color);
+    drawTriangle(bottom, left, right, color);
 }

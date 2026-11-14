@@ -5,10 +5,22 @@
 #include <cmath>
 #include <queue>
 
-namespace
+GridPos stepInDirection(GridPos pos, Direction direction)
 {
-const int NEIGHBOUR_ROW[4] = {-1, 1, 0, 0};
-const int NEIGHBOUR_COL[4] = {0, 0, -1, 1};
+    switch (direction)
+    {
+    case Direction::Up:
+        return GridPos{pos.row - 1, pos.col};
+    case Direction::Down:
+        return GridPos{pos.row + 1, pos.col};
+    case Direction::Left:
+        return GridPos{pos.row, pos.col - 1};
+    case Direction::Right:
+        return GridPos{pos.row, pos.col + 1};
+    case Direction::None:
+        break;
+    }
+    return pos;
 }
 
 bool operator==(const GridPos& left, const GridPos& right)
@@ -90,12 +102,12 @@ const Cell& Maze::at(int row, int col) const
 
 Cell& Maze::at(GridPos pos)
 {
-    return cells[pos.row][pos.col];
+    return at(pos.row, pos.col);
 }
 
 const Cell& Maze::at(GridPos pos) const
 {
-    return cells[pos.row][pos.col];
+    return at(pos.row, pos.col);
 }
 
 GridPos Maze::getStart() const
@@ -149,9 +161,9 @@ std::vector<int> computeDistances(const Maze& maze, GridPos from, PathMode mode)
         frontier.pop();
         const int currentDistance = distances[maze.toIndex(current)];
 
-        for (int direction = 0; direction < 4; ++direction)
+        for (Direction direction : ALL_DIRECTIONS)
         {
-            const GridPos next{current.row + NEIGHBOUR_ROW[direction], current.col + NEIGHBOUR_COL[direction]};
+            const GridPos next = stepInDirection(current, direction);
             if (!maze.isInside(next))
             {
                 continue;
@@ -184,9 +196,9 @@ int shortestPathLength(const Maze& maze, GridPos from, GridPos to, PathMode mode
 int countOpenNeighbours(const Maze& maze, GridPos pos, PathMode mode)
 {
     int count = 0;
-    for (int direction = 0; direction < 4; ++direction)
+    for (Direction direction : ALL_DIRECTIONS)
     {
-        const GridPos next{pos.row + NEIGHBOUR_ROW[direction], pos.col + NEIGHBOUR_COL[direction]};
+        const GridPos next = stepInDirection(pos, direction);
         if (maze.isInside(next) && isPassable(maze.at(next).tile, mode))
         {
             ++count;

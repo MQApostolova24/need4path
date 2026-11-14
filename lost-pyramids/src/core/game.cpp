@@ -21,11 +21,10 @@ const int GUARDIAN_SPAWN_DISTANCE_FROM_EXIT = 6;
 const int GUARDIAN_MIN_DISTANCE_FROM_START = 8;
 
 // Flashlight shape (Hard)
-const float FLASHLIGHT_HALF_ANGLE = 0.55f;  // radians, about 31 degrees each side
+const float FLASHLIGHT_WIDTH = 0.6f;        // the beam widens 0.6 tiles sideways per tile forward
 const float FLASHLIGHT_AURA_RADIUS = 1.6f;  // a little light around the explorer
+const float FLASHLIGHT_AURA_LEVEL = 0.6f;
 const float FLASHLIGHT_LIT_LEVEL = 0.15f;
-
-const Direction ALL_DIRECTIONS[4] = {Direction::Up, Direction::Down, Direction::Left, Direction::Right};
 
 void loseLife(GameState& state)
 {
@@ -219,32 +218,47 @@ GameEvent collectItem(GameState& state, Cell& cell)
     return GameEvent::Moved;
 }
 
-// The flashlight on a corridor tile: a cone in the facing direction plus a faint glow
-// around the explorer. Walls block the light.
+// The flashlight on a corridor tile: a beam in front of the explorer plus a little light
+// around them. Walls block the light.
 float beamLevel(const GameState& state, int row, int col, float range)
 {
-    const float dy = static_cast<float>(row - state.player.row);
-    const float dx = static_cast<float>(col - state.player.col);
+    const float dx = static_cast<float>(col - state.player.col);  // tiles to the right
+    const float dy = static_cast<float>(row - state.player.row);  // tiles down
     const float distance = std::sqrt(dx * dx + dy * dy);
-    if (distance < 0.01f)
+
+    // How far the tile is in front of the explorer, and how far it is to the side.
+    float forward = 0.0f;
+    float sideways = 0.0f;
+    switch (state.facing)
     {
-        return 1.0f;
+    case Direction::Up:
+        forward = -dy;
+        sideways = dx;
+        break;
+    case Direction::Down:
+        forward = dy;
+        sideways = dx;
+        break;
+    case Direction::Left:
+        forward = -dx;
+        sideways = dy;
+        break;
+    case Direction::Right:
+    case Direction::None:
+        forward = dx;
+        sideways = dy;
+        break;
     }
 
     float level = 0.0f;
-    if (distance < FLASHLIGHT_AURA_RADIUS)
+    if (distance <= FLASHLIGHT_AURA_RADIUS)
     {
-        level = 0.75f * (1.0f - distance / FLASHLIGHT_AURA_RADIUS);
+        level = FLASHLIGHT_AURA_LEVEL;
     }
-
-    const GridPos ahead = stepInDirection(GridPos{0, 0}, state.facing);
-    const float cosine = (dx * static_cast<float>(ahead.col) + dy * static_cast<float>(ahead.row)) / distance;
-    const float angle = std::acos(std::clamp(cosine, -1.0f, 1.0f));
-    if (angle <= FLASHLIGHT_HALF_ANGLE && distance <= range)
+    const bool inBeam = forward > 0.0f && std::abs(sideways) <= forward * FLASHLIGHT_WIDTH && distance <= range;
+    if (inBeam)
     {
-        const float byDistance = 1.0f - (distance / range) * (distance / range);
-        const float byAngle = 1.0f - 0.5f * (angle / FLASHLIGHT_HALF_ANGLE) * (angle / FLASHLIGHT_HALF_ANGLE);
-        level = std::max(level, byDistance * byAngle);
+        level = std::max(level, 1.0f - distance / (range + 1.0f));  // weaker further away
     }
 
     if (level > 0.0f && !hasLineOfSight(state.maze, state.player, GridPos{row, col}))
@@ -305,24 +319,6 @@ const char* getRelicName(Location location, Difficulty difficulty)
 {
     const int index = std::clamp(static_cast<int>(difficulty), 0, 2);
     return getLocationInfo(location).relics[index];
-}
-
-GridPos stepInDirection(GridPos pos, Direction direction)
-{
-    switch (direction)
-    {
-    case Direction::Up:
-        return GridPos{pos.row - 1, pos.col};
-    case Direction::Down:
-        return GridPos{pos.row + 1, pos.col};
-    case Direction::Left:
-        return GridPos{pos.row, pos.col - 1};
-    case Direction::Right:
-        return GridPos{pos.row, pos.col + 1};
-    case Direction::None:
-        break;
-    }
-    return pos;
 }
 
 bool startNewGame(GameState& state, int size, Location location, Difficulty difficulty, bool withRelic,
@@ -488,8 +484,8 @@ float getLightLevel(const GameState& state, int row, int col)
         const float distance = distanceBetween(state.player, GridPos{row, col});
         const float inner = settings.lightRange * 0.45f;
         const float outer = settings.lightRange + 0.6f;
-        const float t = std::clamp((distance - inner) / (outer - inner), 0.0f, 1.0f);
-        return 1.0f - t * t * (3.0f - 2.0f * t);  // smooth edge
+        // Full light near the explorer, then it fades out evenly towards the edge.
+        return std::clamp((outer - distance) / (outer - inner), 0.0f, 1.0f);
     }
     case LightMode::Flashlight:
         return flashlightLevel(state, row, col, settings.lightRange);

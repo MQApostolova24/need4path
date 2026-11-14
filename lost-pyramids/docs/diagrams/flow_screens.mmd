@@ -1,0 +1,17 @@
+flowchart TD
+  A([Start the program]) --> B[Log In]
+  B -->|valid name + password| D[Main Menu]
+  B -->|no account yet| C[Sign Up]
+  C -->|account created| B
+  D --> E[Choose Location<br/>Egypt / Mexico / Cambodia]
+  D --> K[Trading Post<br/>sell relics, buy skins]
+  D --> L[How to Play]
+  D --> M[Hall of Fame]
+  D --> N([Quit])
+  E --> F[Prepare Expedition<br/>difficulty + size 10-50]
+  F -->|size is valid| G[Generate a new pyramid]
+  G --> H[Playing]
+  H <-->|P / Esc| I[Pause menu]
+  H -->|exit reached /<br/>no lives / time up| J[Results]
+  J -->|Play Again| G
+  J -->|Main Menu| D

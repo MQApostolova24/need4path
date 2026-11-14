@@ -255,7 +255,7 @@ void drawHeart(Vector2 center, float size, Color color)
     const float radius = size * 0.26f;
     DrawCircleV({center.x - size * 0.22f, center.y - size * 0.1f}, radius, color);
     DrawCircleV({center.x + size * 0.22f, center.y - size * 0.1f}, radius, color);
-    drawTriangleAnyOrder({center.x - size * 0.47f, center.y - size * 0.02f}, {center.x, center.y + size * 0.45f},
+    drawTriangle({center.x - size * 0.47f, center.y - size * 0.02f}, {center.x, center.y + size * 0.45f},
                          {center.x + size * 0.47f, center.y - size * 0.02f}, color);
     DrawCircleV({center.x - size * 0.26f, center.y - size * 0.16f}, size * 0.07f, Fade(WHITE, 0.45f));
 }

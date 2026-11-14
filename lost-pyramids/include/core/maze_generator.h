@@ -27,8 +27,8 @@ struct GenerationResult
 };
 
 // Builds a brand-new random pyramid:
-//  1. carves corridors with the "growing tree" algorithm - a mix of long winding
-//     corridors (newest cell) and branching halls (random cell),
+//  1. carves corridors with a "recursive backtracker" (a stack: dig forward,
+//     step back at dead ends), so every corridor is connected,
 //  2. opens burial chambers and adds loops, so there is more than one way around,
 //  3. places the exit gate in the bottom-right corner,
 //  4. turns some walls into secret doors that are real shortcuts,
